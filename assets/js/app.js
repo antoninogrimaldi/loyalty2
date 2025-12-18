@@ -38,3 +38,18 @@ function attachProductPicker(inputId) {
 }
 attachProductPicker('product1');
 attachProductPicker('product2');
+
+// Generic table/list filter
+document.querySelectorAll('[data-filter-target]').forEach((input) => {
+    const selector = input.getAttribute('data-filter-target');
+    const fieldSelector = input.getAttribute('data-filter-field');
+    const targets = document.querySelectorAll(selector);
+    input.addEventListener('input', (event) => {
+        const term = event.target.value.trim().toLowerCase();
+        targets.forEach((row) => {
+            const haystack = fieldSelector ? (row.querySelector(fieldSelector)?.getAttribute('data-search') || row.getAttribute('data-search') || row.textContent) : (row.getAttribute('data-search') || row.textContent);
+            const visible = (haystack || '').toLowerCase().includes(term);
+            row.style.display = visible ? '' : 'none';
+        });
+    });
+});

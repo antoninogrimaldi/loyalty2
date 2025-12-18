@@ -40,12 +40,19 @@ $orders = $orderStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 include __DIR__ . '/../includes/header.php';
 ?>
-<section class="grid">
-    <div class="card highlight">
-        <h3>Carta fedeltà</h3>
-        <p class="muted">Saldo punti</p>
-        <div class="badge large"><?= e($balance['points'] ?? 0) ?> pt</div>
-        <p>Livello: <strong><?= e($balance['level'] ?? 'Bronze') ?></strong></p>
+<section class="card highlight">
+    <div class="top-hero">
+        <div>
+            <p class="eyebrow">Benvenuto</p>
+            <h1><?= e($user['first_name'] . ' ' . $user['last_name']) ?></h1>
+            <p class="tagline">Carta digitale pronta al check-out. Sincronizzata con Shopify e Odoo tramite EAN.</p>
+            <div class="stat-grid">
+                <div class="stat"><h4>Punti</h4><strong><?= e($balance['points'] ?? 0) ?></strong></div>
+                <div class="stat"><h4>Livello</h4><strong><?= e($balance['level'] ?? 'Bronze') ?></strong></div>
+                <div class="stat"><h4>Coupon attivi</h4><strong><?= count($coupons) ?></strong></div>
+                <div class="stat"><h4>Offerte salvate</h4><strong><?= count($offers) ?></strong></div>
+            </div>
+        </div>
         <div class="qr-box">
             <img src="<?= e($qrUrl) ?>" alt="QR code carta" loading="lazy">
             <div>
@@ -54,19 +61,32 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
     </div>
+</section>
 
+<section class="grid">
     <div class="card">
-        <h3>Coupon</h3>
+        <div class="card-header">
+            <div>
+                <p class="eyebrow">Vantaggi</p>
+                <h3>Coupon</h3>
+            </div>
+            <span class="pill subtle">Aggiornati in tempo reale</span>
+        </div>
         <?php if (!$coupons): ?>
             <p>Nessun coupon attivo.</p>
         <?php else: ?>
             <ul class="list">
                 <?php foreach ($coupons as $coupon): ?>
-                    <li><strong><?= e($coupon['code']) ?></strong> · <?= e($coupon['description']) ?> (<?= e($coupon['discount_percent']) ?>%)
-                        <?php if ($coupon['expires_at']): ?>
-                            <span class="muted">Scade: <?= e($coupon['expires_at']) ?></span>
-                        <?php endif; ?>
-                        <?php if ($coupon['is_redeemed']): ?><span class="pill subtle">Usato</span><?php endif; ?>
+                    <li>
+                        <div class="top-actions">
+                            <div>
+                                <strong><?= e($coupon['code']) ?></strong> · <?= e($coupon['description']) ?> (<?= e($coupon['discount_percent']) ?>%)
+                                <?php if ($coupon['expires_at']): ?>
+                                    <div class="muted small">Scade: <?= e($coupon['expires_at']) ?></div>
+                                <?php endif; ?>
+                            </div>
+                            <?php if ($coupon['is_redeemed']): ?><span class="pill subtle">Usato</span><?php endif; ?>
+                        </div>
                     </li>
                 <?php endforeach; ?>
             </ul>
@@ -74,7 +94,13 @@ include __DIR__ . '/../includes/header.php';
     </div>
 
     <div class="card">
-        <h3>Offerte personalizzate</h3>
+        <div class="card-header">
+            <div>
+                <p class="eyebrow">Scelte 1:1</p>
+                <h3>Offerte personalizzate</h3>
+            </div>
+            <a class="button ghost" href="<?= e(base_url('public/offers.php')) ?>">Gestisci</a>
+        </div>
         <?php if (!$offers): ?>
             <p>Non hai offerte selezionate.</p>
         <?php else: ?>
@@ -90,26 +116,27 @@ include __DIR__ . '/../includes/header.php';
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
-        <a class="button ghost" href="<?= e(base_url('public/offers.php')) ?>">Gestisci offerte</a>
     </div>
 
     <div class="card">
-        <h3>Ultimi ordini</h3>
+        <div class="card-header">
+            <div>
+                <p class="eyebrow">Storico</p>
+                <h3>Ultimi ordini</h3>
+            </div>
+            <span class="pill subtle">Sincronizzati</span>
+        </div>
         <?php if (!$orders): ?>
             <p>Nessun ordine registrato.</p>
         <?php else: ?>
-            <table class="table">
-                <thead><tr><th>#</th><th>Totale</th><th>Data</th></tr></thead>
-                <tbody>
-                    <?php foreach ($orders as $order): ?>
-                        <tr>
-                            <td><?= e($order['order_number']) ?></td>
-                            <td>&euro; <?= e($order['total']) ?></td>
-                            <td><?= e($order['created_at']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <ul class="timeline">
+                <?php foreach ($orders as $order): ?>
+                    <li>
+                        <strong><?= e($order['order_number']) ?></strong> · &euro; <?= e($order['total']) ?>
+                        <div class="muted small"><?= e($order['created_at']) ?></div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
         <?php endif; ?>
     </div>
 </section>

@@ -57,6 +57,7 @@ CREATE TABLE products (
     active TINYINT(1) DEFAULT 1,
     odoo_product_id VARCHAR(64) DEFAULT NULL,
     shopify_product_id VARCHAR(64) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_products_ean (ean)
 );
 
