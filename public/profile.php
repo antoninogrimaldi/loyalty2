@@ -11,6 +11,11 @@ $stmt->bind_param('i', $user['id']);
 $stmt->execute();
 $profile = $stmt->get_result()->fetch_assoc();
 
+$consentStmt = $mysqli->prepare('SELECT data_processing, profiling, marketing, recorded_at FROM user_consents WHERE user_id = ?');
+$consentStmt->bind_param('i', $user['id']);
+$consentStmt->execute();
+$consents = $consentStmt->get_result()->fetch_assoc();
+
 if (is_post()) {
     if (!verify_csrf($_POST['csrf'] ?? '')) { die('Token CSRF non valido'); }
     $fields = [
@@ -37,10 +42,16 @@ if (is_post()) {
 include __DIR__ . '/../includes/header.php';
 ?>
 <section class="card">
-    <h2>Profilo</h2>
+    <div class="card-header">
+        <div>
+            <p class="eyebrow">Profilo</p>
+            <h2>I tuoi dati</h2>
+            <p class="muted">Gestisci recapiti e indirizzo. Per variazioni privacy contatta l'amministratore.</p>
+        </div>
+    </div>
     <?php if ($success): ?><p class="success"><?= e($success) ?></p><?php endif; ?>
     <?php if ($error): ?><p class="error"><?= e($error) ?></p><?php endif; ?>
-    <form method="post">
+    <form method="post" class="stacked">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="grid">
             <div class="form-control"><label>Nome<input name="first_name" value="<?= e($profile['first_name']) ?>"></label></div>
@@ -52,5 +63,16 @@ include __DIR__ . '/../includes/header.php';
         <p class="muted">Per GDPR, puoi chiedere esportazione o cancellazione scrivendo all'amministratore.</p>
         <button class="button" type="submit">Salva</button>
     </form>
+    <?php if ($consents): ?>
+        <div class="consent-summary">
+            <h3>Consensi registrati</h3>
+            <ul class="list">
+                <li>Trattamento dati: <?= $consents['data_processing'] ? '✅ attivo' : '❌ non attivo' ?></li>
+                <li>Profilazione: <?= $consents['profiling'] ? '✅' : '❌' ?></li>
+                <li>Marketing: <?= $consents['marketing'] ? '✅' : '❌' ?></li>
+            </ul>
+            <p class="muted">Ultimo aggiornamento: <?= e($consents['recorded_at']) ?></p>
+        </div>
+    <?php endif; ?>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

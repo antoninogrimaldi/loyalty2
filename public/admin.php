@@ -31,10 +31,10 @@ if (is_post()) {
     }
 }
 
-$users = $mysqli->query('SELECT u.id, u.first_name, u.last_name, u.email, u.role, COALESCE(lb.points,0) as points FROM users u LEFT JOIN loyalty_balances lb ON lb.user_id = u.id ORDER BY u.created_at DESC')->fetch_all(MYSQLI_ASSOC);
+$users = $mysqli->query('SELECT u.id, u.first_name, u.last_name, u.email, u.role, COALESCE(lb.points,0) as points, COALESCE(uc.data_processing,0) as data_processing, COALESCE(uc.profiling,0) as profiling, COALESCE(uc.marketing,0) as marketing, uc.recorded_at FROM users u LEFT JOIN loyalty_balances lb ON lb.user_id = u.id LEFT JOIN user_consents uc ON uc.user_id = u.id ORDER BY u.created_at DESC')->fetch_all(MYSQLI_ASSOC);
 $coupons = $mysqli->query('SELECT code, description, discount_percent, expires_at FROM coupons ORDER BY expires_at DESC')->fetch_all(MYSQLI_ASSOC);
-$offers = $mysqli->query('SELECT u.email, p.product_name, p.created_at FROM personalized_offers p JOIN users u ON u.id = p.user_id ORDER BY p.created_at DESC LIMIT 20')->fetch_all(MYSQLI_ASSOC);
-$products = $mysqli->query('SELECT name, price, active FROM products ORDER BY name ASC')->fetch_all(MYSQLI_ASSOC);
+$offers = $mysqli->query('SELECT u.email, p.product_name, p.product_ean, p.created_at FROM personalized_offers p JOIN users u ON u.id = p.user_id ORDER BY p.created_at DESC LIMIT 20')->fetch_all(MYSQLI_ASSOC);
+$products = $mysqli->query('SELECT name, sku, ean, price, active, odoo_product_id, shopify_product_id FROM products ORDER BY name ASC')->fetch_all(MYSQLI_ASSOC);
 
 include __DIR__ . '/../includes/header.php';
 ?>
@@ -42,13 +42,18 @@ include __DIR__ . '/../includes/header.php';
     <div class="card">
         <h3>Clienti</h3>
         <table class="table">
-            <thead><tr><th>Nome</th><th>Email</th><th>Punti</th><th>Ruolo</th></tr></thead>
+            <thead><tr><th>Nome</th><th>Email</th><th>Punti</th><th>Consensi</th><th>Ruolo</th></tr></thead>
             <tbody>
                 <?php foreach ($users as $u): ?>
                     <tr>
                         <td><?= e($u['first_name'].' '.$u['last_name']) ?></td>
                         <td><?= e($u['email']) ?></td>
                         <td><?= e($u['points']) ?></td>
+                        <td>
+                            <span class="pill subtle">Dati: <?= $u['data_processing'] ? '✅' : '❌' ?></span>
+                            <span class="pill subtle">Prof.: <?= $u['profiling'] ? '✅' : '❌' ?></span>
+                            <span class="pill subtle">Mkt: <?= $u['marketing'] ? '✅' : '❌' ?></span>
+                        </td>
                         <td><?= e($u['role']) ?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -95,23 +100,34 @@ include __DIR__ . '/../includes/header.php';
         </form>
     </div>
     <div class="card">
-        <h3>Catalogo (sync Odoo)</h3>
+        <h3>Catalogo (EAN master)</h3>
         <?php if (!$products): ?><p>Nessun prodotto. Aggiorna tramite Odoo/Shopify.</p><?php else: ?>
-            <ul>
-                <?php foreach ($products as $p): ?>
-                    <li><?= e($p['name']) ?> - &euro; <?= e($p['price']) ?> <?= $p['active'] ? '' : '(non attivo)' ?></li>
-                <?php endforeach; ?>
-            </ul>
+            <table class="table">
+                <thead><tr><th>Nome</th><th>SKU</th><th>EAN</th><th>Prezzo</th><th>Odoo ID</th><th>Shopify ID</th><th>Stato</th></tr></thead>
+                <tbody>
+                    <?php foreach ($products as $p): ?>
+                        <tr>
+                            <td><?= e($p['name']) ?></td>
+                            <td><?= e($p['sku']) ?></td>
+                            <td><?= e($p['ean']) ?></td>
+                            <td>&euro; <?= e($p['price']) ?></td>
+                            <td><?= e($p['odoo_product_id']) ?></td>
+                            <td><?= e($p['shopify_product_id']) ?></td>
+                            <td><?= $p['active'] ? 'Attivo' : 'Non attivo' ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         <?php endif; ?>
     </div>
 </section>
 <section class="card">
     <h3>Offerte recenti</h3>
     <table class="table">
-        <thead><tr><th>Cliente</th><th>Prodotto</th><th>Data</th></tr></thead>
+        <thead><tr><th>Cliente</th><th>Prodotto</th><th>EAN</th><th>Data</th></tr></thead>
         <tbody>
             <?php foreach ($offers as $o): ?>
-                <tr><td><?= e($o['email']) ?></td><td><?= e($o['product_name']) ?></td><td><?= e($o['created_at']) ?></td></tr>
+                <tr><td><?= e($o['email']) ?></td><td><?= e($o['product_name']) ?></td><td><?= e($o['product_ean']) ?></td><td><?= e($o['created_at']) ?></td></tr>
             <?php endforeach; ?>
         </tbody>
     </table>

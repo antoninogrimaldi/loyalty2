@@ -12,24 +12,25 @@ Piattaforma loyalty minimale scritta in PHP/JS/HTML/CSS con MySQL, pensata per X
 4. Accedi all'app su `http://localhost/loyalty2/public/login.php`. Admin di default: `admin@example.com` / `admin123`.
 
 ## Funzioni incluse
-- Registrazione con campi Nome, Cognome, Codice fiscale, Telefono, Email, CAP, Indirizzo.
+- Registrazione con campi Nome, Cognome, Codice fiscale, Telefono, Email, CAP, Indirizzo e raccolta consensi (trattamento dati, profilazione, marketing) con timestamp.
 - Login con password + stub per social login da completare con OAuth.
 - Home con carta fedeltà, saldo punti, livello, coupon attivi, offerte personalizzate e ultimi ordini.
-- Pagina profilo per aggiornare i dati personali.
-- Pagina offerte personalizzate: ogni cliente può scegliere max 2 prodotti, con limite di 2 cambi/anno.
-- Backoffice per admin: gestione clienti, punti, coupon e catalogo (in vista di sync con Odoo/Shopify).
+- Pagina profilo per aggiornare i dati personali e visualizzare i consensi registrati.
+- Pagina offerte personalizzate: ogni cliente può scegliere max 2 prodotti (identificati da EAN), con limite di 2 cambi/anno tracciati a log.
+- Backoffice per admin: gestione clienti, punti, coupon e catalogo (SKU + EAN master + ID Odoo/Shopify per mapping cross piattaforma).
 
 ## Sicurezza e GDPR
-- Password con `password_hash`, sessioni rigenerate, query prepare, token CSRF nei form.
+- Password con `password_hash`, sessioni HttpOnly/SameSite e rigenerate, query prepared, token CSRF nei form.
+- Consensi salvati nella tabella `user_consents` con timestamp e check obbligatorio per il trattamento dati.
 - Minimizzazione dati: solo gli attributi richiesti, nota su diritto di cancellazione/esportazione.
 - Per social login/OAuth salva solo gli identificativi strettamente necessari.
 
 ## Integrazioni successive
-- **Shopify**: sincronizza clienti, ordini e coupon usando le API Admin; mappa email/phone e aggiorna tabella `orders` e `coupons`.
-- **Odoo**: sincronizza catalogo (`products`) e verifica coupon in fase di checkout POS con un endpoint PHP protetto.
+- **Shopify**: sincronizza clienti, ordini e coupon usando le API Admin; mappa email/phone e aggiorna tabella `orders` e `coupons`. Usa l'EAN come identificatore prodotto o i campi `shopify_product_id` nella tabella `products`.
+- **Odoo**: sincronizza catalogo (`products`) usando `ean` come chiave primaria condivisa; verifica coupon in fase di checkout POS con un endpoint PHP protetto.
 
 ## Struttura
 - `public/` pagine principali (login, register, home, profilo, offerte, backoffice).
 - `includes/` helper di sicurezza, sessione e DB.
 - `assets/` stile e script UI responsive.
-- `schema.sql` definizione database con dati demo.
+- `schema.sql` definizione database con dati demo, EAN/sku e consensi preconfigurati.
