@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
 $config = app_config();
+$current = basename($_SERVER['SCRIPT_NAME'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -15,13 +16,13 @@ $config = app_config();
 </head>
 <body>
 <header class="topbar">
-    <div class="brand">Loyalty Hub</div>
+    <a class="brand" href="<?= e(base_url('public/index.php')) ?>">Loyalty Hub</a>
     <nav>
-        <a href="<?= e(base_url('public/index.php')) ?>">Home</a>
-        <a href="<?= e(base_url('public/profile.php')) ?>">Profilo</a>
-        <a href="<?= e(base_url('public/offers.php')) ?>">Offerte</a>
+        <a class="<?= $current === 'index.php' ? 'active' : '' ?>" href="<?= e(base_url('public/index.php')) ?>">Home</a>
+        <a class="<?= $current === 'profile.php' ? 'active' : '' ?>" href="<?= e(base_url('public/profile.php')) ?>">Profilo</a>
+        <a class="<?= $current === 'offers.php' ? 'active' : '' ?>" href="<?= e(base_url('public/offers.php')) ?>">Offerte</a>
         <?php if (current_user() && current_user()['role'] === 'admin'): ?>
-            <a href="<?= e(base_url('public/admin.php')) ?>">Backoffice</a>
+            <a class="<?= $current === 'admin.php' ? 'active' : '' ?>" href="<?= e(base_url('public/admin.php')) ?>">Backoffice</a>
         <?php endif; ?>
     </nav>
     <div class="auth">
