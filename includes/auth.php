@@ -31,7 +31,8 @@ function login_user(array $user): void
         'first_name' => $user['first_name'],
         'last_name' => $user['last_name'],
         'role' => $user['role'],
-        'email' => $user['email']
+        'email' => $user['email'],
+        'tax_code' => $user['tax_code'] ?? null
     ];
 }
 

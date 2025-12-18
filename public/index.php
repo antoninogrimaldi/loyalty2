@@ -5,6 +5,17 @@ require_once __DIR__ . '/../includes/db.php';
 require_login();
 $user = current_user();
 
+if (empty($user['tax_code'])) {
+    $userStmt = $mysqli->prepare('SELECT tax_code FROM users WHERE id = ?');
+    $userStmt->bind_param('i', $user['id']);
+    $userStmt->execute();
+    $fresh = $userStmt->get_result()->fetch_assoc();
+    if ($fresh) {
+        $user['tax_code'] = $fresh['tax_code'];
+        $_SESSION['user']['tax_code'] = $fresh['tax_code'];
+    }
+}
+
 $balanceStmt = $mysqli->prepare('SELECT points, level FROM loyalty_balances WHERE user_id = ?');
 $balanceStmt->bind_param('i', $user['id']);
 $balanceStmt->execute();
@@ -20,6 +31,8 @@ $offersStmt->bind_param('i', $user['id']);
 $offersStmt->execute();
 $offers = $offersStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
+$qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode($user['tax_code']);
+
 $orderStmt = $mysqli->prepare('SELECT order_number, total, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 5');
 $orderStmt->bind_param('i', $user['id']);
 $orderStmt->execute();
@@ -33,6 +46,13 @@ include __DIR__ . '/../includes/header.php';
         <p class="muted">Saldo punti</p>
         <div class="badge large"><?= e($balance['points'] ?? 0) ?> pt</div>
         <p>Livello: <strong><?= e($balance['level'] ?? 'Bronze') ?></strong></p>
+        <div class="qr-box">
+            <img src="<?= e($qrUrl) ?>" alt="QR code carta" loading="lazy">
+            <div>
+                <p class="muted">Mostra questo QR in cassa per identificarti rapidamente.</p>
+                <p class="small">Codice fiscale: <strong><?= e($user['tax_code']) ?></strong></p>
+            </div>
+        </div>
     </div>
 
     <div class="card">

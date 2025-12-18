@@ -14,7 +14,7 @@ if (is_post()) {
     $data = [
         'first_name' => trim($_POST['first_name'] ?? ''),
         'last_name' => trim($_POST['last_name'] ?? ''),
-        'tax_code' => trim($_POST['tax_code'] ?? ''),
+        'tax_code' => strtoupper(trim($_POST['tax_code'] ?? '')),
         'phone' => trim($_POST['phone'] ?? ''),
         'email' => trim($_POST['email'] ?? ''),
         'postal_code' => trim($_POST['postal_code'] ?? ''),
@@ -39,8 +39,28 @@ if (is_post()) {
         $error = 'La password deve avere almeno 8 caratteri';
     }
 
+    if (!$error && !is_valid_italian_tax_code($data['tax_code'])) {
+        $error = 'Il codice fiscale non è valido';
+    }
+
     if (!$error && !$consents['data_processing']) {
         $error = 'Devi acconsentire al trattamento dei dati per registrarti';
+    }
+
+    if (!$error) {
+        $existing = $mysqli->prepare('SELECT email, phone, tax_code FROM users WHERE email = ? OR phone = ? OR tax_code = ? LIMIT 1');
+        $existing->bind_param('sss', $data['email'], $data['phone'], $data['tax_code']);
+        $existing->execute();
+        $dup = $existing->get_result()->fetch_assoc();
+        if ($dup) {
+            if ($dup['email'] === $data['email']) {
+                $error = 'Esiste già un account con questa email';
+            } elseif ($dup['phone'] === $data['phone']) {
+                $error = 'Esiste già un account con questo numero di telefono';
+            } else {
+                $error = 'Esiste già un account con questo codice fiscale';
+            }
+        }
     }
 
     if (!$error) {
@@ -64,7 +84,7 @@ if (is_post()) {
             $success = 'Registrazione completata. Ora puoi accedere.';
         } catch (mysqli_sql_exception $e) {
             $mysqli->rollback();
-            $error = 'Email già registrata o dati non validi';
+            $error = 'Registrazione non riuscita. Riprovare più tardi';
         }
     }
 }

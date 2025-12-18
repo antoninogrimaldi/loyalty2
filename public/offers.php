@@ -95,33 +95,31 @@ include __DIR__ . '/../includes/header.php';
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="grid">
             <div class="form-control">
-                <label>Prodotto 1
-                    <select name="product1">
-                        <option value="">-- scegli --</option>
-                        <?php foreach ($productRows as $product): ?>
-                            <option value="<?= e($product['ean']) ?>"><?= e($product['name']) ?> · EAN <?= e($product['ean']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
+                <label for="product1">Prodotto 1</label>
+                <input id="product1" name="product1" list="products-list" placeholder="Cerca per nome, brand o EAN" aria-describedby="product1-help">
+                <small id="product1-help" class="muted">Digita per filtrare rapidamente migliaia di prodotti.</small>
             </div>
             <div class="form-control">
-                <label>Prodotto 2
-                    <select name="product2">
-                        <option value="">-- scegli --</option>
-                        <?php foreach ($productRows as $product): ?>
-                            <option value="<?= e($product['ean']) ?>"><?= e($product['name']) ?> · EAN <?= e($product['ean']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
+                <label for="product2">Prodotto 2</label>
+                <input id="product2" name="product2" list="products-list" placeholder="Cerca per nome, brand o EAN" aria-describedby="product2-help">
+                <small id="product2-help" class="muted">Lascia vuoto se desideri selezionare solo un prodotto.</small>
             </div>
         </div>
+        <datalist id="products-list">
+            <?php foreach ($productRows as $product): ?>
+                <option value="<?= e($product['ean']) ?>" data-ean="<?= e($product['ean']) ?>" label="<?= e($product['name'] . ' • ' . ($product['brand'] ?? '')) ?>"></option>
+            <?php endforeach; ?>
+        </datalist>
         <p class="muted">L'EAN funge da identificatore unico per Shopify e Odoo. SKU disponibile per cataloghi interni.</p>
         <button class="button" type="submit">Salva preferenze</button>
     </form>
-    <h3>Catalogo sincronizzato</h3>
+    <div class="top-actions">
+        <h3 style="margin: 0;">Catalogo sincronizzato</h3>
+        <input type="search" class="filter-input" placeholder="Filtra prodotti per nome, SKU, brand o EAN" data-product-filter>
+    </div>
     <div class="product-gallery">
         <?php foreach ($productRows as $product): ?>
-            <article class="product-card">
+            <article class="product-card" data-product-card data-searchable="<?= e(strtolower($product['name'] . ' ' . ($product['brand'] ?? '') . ' ' . $product['sku'] . ' ' . $product['ean'])) ?>">
                 <?php if (!empty($product['image_url'])): ?>
                     <div class="product-media" style="background-image:url('<?= e($product['image_url']) ?>');"></div>
                 <?php endif; ?>
