@@ -15,7 +15,7 @@ $couponStmt->bind_param('i', $user['id']);
 $couponStmt->execute();
 $coupons = $couponStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-$offersStmt = $mysqli->prepare('SELECT product_name, product_ean, note, created_at FROM personalized_offers WHERE user_id = ? ORDER BY created_at DESC');
+$offersStmt = $mysqli->prepare('SELECT po.product_name, po.product_ean, po.note, po.created_at, p.image_url FROM personalized_offers po LEFT JOIN products p ON p.ean = po.product_ean WHERE po.user_id = ? ORDER BY po.created_at DESC');
 $offersStmt->bind_param('i', $user['id']);
 $offersStmt->execute();
 $offers = $offersStmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -60,7 +60,13 @@ include __DIR__ . '/../includes/header.php';
         <?php else: ?>
             <ul class="list">
                 <?php foreach ($offers as $offer): ?>
-                    <li><strong><?= e($offer['product_name']) ?></strong> <span class="muted">EAN <?= e($offer['product_ean']) ?></span> <span class="muted"><?= e($offer['note']) ?></span></li>
+                    <li class="offer-row">
+                        <?php if (!empty($offer['image_url'])): ?><span class="offer-thumb" style="background-image:url('<?= e($offer['image_url']) ?>');"></span><?php endif; ?>
+                        <div>
+                            <strong><?= e($offer['product_name']) ?></strong> <span class="muted">EAN <?= e($offer['product_ean']) ?></span>
+                            <?php if (!empty($offer['note'])): ?><div class="muted small"><?= e($offer['note']) ?></div><?php endif; ?>
+                        </div>
+                    </li>
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>

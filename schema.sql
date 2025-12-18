@@ -49,6 +49,10 @@ CREATE TABLE products (
     name VARCHAR(120) NOT NULL,
     sku VARCHAR(60) NOT NULL UNIQUE,
     ean VARCHAR(32) NOT NULL UNIQUE,
+    brand VARCHAR(120) DEFAULT NULL,
+    category VARCHAR(120) DEFAULT NULL,
+    description TEXT,
+    image_url VARCHAR(255) DEFAULT NULL,
     price DECIMAL(10,2) NOT NULL,
     active TINYINT(1) DEFAULT 1,
     odoo_product_id VARCHAR(64) DEFAULT NULL,
@@ -97,10 +101,10 @@ INSERT INTO orders (user_id, order_number, total) VALUES (1, 'ORD-1001', 89.90);
 INSERT INTO coupons (user_id, code, description, discount_percent, expires_at)
 VALUES (1, 'WELCOME10', '10% di benvenuto', 10, DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY));
 
-INSERT INTO products (name, sku, ean, price, active, odoo_product_id, shopify_product_id) VALUES
-('Caffè in grani', 'CAFF-GRANI-001', '8000000000011', 7.90, 1, '101', 'gid://shopify/Product/111111111'),
-('Snack bio', 'SNCK-BIO-002', '8000000000028', 3.20, 1, '102', 'gid://shopify/Product/222222222'),
-('Detersivo eco', 'DETR-ECO-003', '8000000000035', 5.50, 1, '103', 'gid://shopify/Product/333333333');
+INSERT INTO products (name, sku, ean, brand, category, description, image_url, price, active, odoo_product_id, shopify_product_id) VALUES
+('Caffè in grani', 'CAFF-GRANI-001', '8000000000011', 'Torrefazione Demo', 'Dispensa', 'Miscela 100% arabica per moka e espresso.', 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=60', 7.90, 1, '101', 'gid://shopify/Product/111111111'),
+('Snack bio', 'SNCK-BIO-002', '8000000000028', 'Green Snacks', 'Alimentari', 'Barretta biologica con frutta secca e cereali.', 'https://images.unsplash.com/photo-1585238341986-1e3b71ff0af8?auto=format&fit=crop&w=400&q=60', 3.20, 1, '102', 'gid://shopify/Product/222222222'),
+('Detersivo eco', 'DETR-ECO-003', '8000000000035', 'Eco Home', 'Cura casa', 'Detersivo ecologico concentrato per bucato.', 'https://images.unsplash.com/photo-1582719478248-54e9f2af4b03?auto=format&fit=crop&w=400&q=60', 5.50, 1, '103', 'gid://shopify/Product/333333333');
 
 INSERT INTO personalized_offers (user_id, product_name, product_ean, note, yearly_changes)
 VALUES (1, 'Caffè in grani', '8000000000011', 'Prezzo dedicato', 1);

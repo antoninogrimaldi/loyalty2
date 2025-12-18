@@ -16,8 +16,8 @@ Piattaforma loyalty minimale scritta in PHP/JS/HTML/CSS con MySQL, pensata per X
 - Login con password + stub per social login da completare con OAuth.
 - Home con carta fedeltà, saldo punti, livello, coupon attivi, offerte personalizzate e ultimi ordini.
 - Pagina profilo per aggiornare i dati personali e visualizzare i consensi registrati.
-- Pagina offerte personalizzate: ogni cliente può scegliere max 2 prodotti (identificati da EAN), con limite di 2 cambi/anno tracciati a log.
-- Backoffice per admin: gestione clienti, punti, coupon e catalogo (SKU + EAN master + ID Odoo/Shopify per mapping cross piattaforma).
+- Pagina offerte personalizzate: ogni cliente può scegliere max 2 prodotti (identificati da EAN), con limite di 2 cambi/anno tracciati a log. La UI mostra il catalogo con immagini, brand, categoria e descrizione.
+- Backoffice per admin: gestione clienti, punti, coupon e catalogo (SKU + EAN master + ID Odoo/Shopify per mapping cross piattaforma) con preview delle immagini prodotto.
 
 ## Sicurezza e GDPR
 - Password con `password_hash`, sessioni HttpOnly/SameSite e rigenerate, query prepared, token CSRF nei form.
