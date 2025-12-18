@@ -69,7 +69,7 @@ if (is_post()) {
             $log->execute();
 
             $mysqli->commit();
-            header('Location: /public/offers.php');
+            header('Location: ' . base_url('public/offers.php'));
             exit;
         } catch (mysqli_sql_exception $e) {
             $mysqli->rollback();

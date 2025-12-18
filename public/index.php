@@ -64,7 +64,7 @@ include __DIR__ . '/../includes/header.php';
                 <?php endforeach; ?>
             </ul>
         <?php endif; ?>
-        <a class="button ghost" href="/public/offers.php">Gestisci offerte</a>
+        <a class="button ghost" href="<?= e(base_url('public/offers.php')) ?>">Gestisci offerte</a>
     </div>
 
     <div class="card">

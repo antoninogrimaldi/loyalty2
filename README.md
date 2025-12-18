@@ -8,8 +8,8 @@ Piattaforma loyalty minimale scritta in PHP/JS/HTML/CSS con MySQL, pensata per X
    ```bash
    mysql -u root -p < schema.sql
    ```
-3. Aggiorna le credenziali in `config/config.php` se necessario.
-4. Accedi all'app su `http://localhost/loyalty2/public/login.php`. Admin di default: `admin@example.com` / `admin123`.
+3. Aggiorna le credenziali in `config/config.php` se necessario. Se cambi il nome della cartella, aggiorna anche `base_url` (es. impostalo a `""` se metti i file direttamente in `htdocs`).
+4. Apri `http://localhost/loyalty2` (o il percorso scelto): verrai reindirizzato al login/dashboard. Admin di default: `admin@example.com` / `admin123`.
 
 ## Funzioni incluse
 - Registrazione con campi Nome, Cognome, Codice fiscale, Telefono, Email, CAP, Indirizzo e raccolta consensi (trattamento dati, profilazione, marketing) con timestamp.

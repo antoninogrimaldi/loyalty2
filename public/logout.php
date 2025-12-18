@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/helpers.php';
 logout_user();
-header('Location: /public/login.php');
+header('Location: ' . base_url('public/login.php'));
 exit;

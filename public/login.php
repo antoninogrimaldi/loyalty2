@@ -21,7 +21,7 @@ if (is_post()) {
 
     if ($user && password_verify($password, $user['password_hash'])) {
         login_user($user);
-        header('Location: /public/index.php');
+        header('Location: ' . base_url('public/index.php'));
         exit;
     }
     $error = 'Credenziali non valide';
