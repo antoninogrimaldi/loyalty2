@@ -1,10 +1,12 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
     $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
     session_set_cookie_params([
         'secure' => $secure,
         'httponly' => true,
-        'samesite' => 'Lax'
+        'samesite' => 'Strict'
     ]);
     session_start();
 }
@@ -44,4 +46,28 @@ function logout_user(): void
         setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
     }
     session_destroy();
+}
+
+function record_login_attempt(): void
+{
+    $_SESSION['login_attempts'] = array_values(array_filter(
+        $_SESSION['login_attempts'] ?? [],
+        fn($ts) => $ts >= time() - 900
+    ));
+    $_SESSION['login_attempts'][] = time();
+}
+
+function login_throttled(): bool
+{
+    $attempts = array_values(array_filter(
+        $_SESSION['login_attempts'] ?? [],
+        fn($ts) => $ts >= time() - 900
+    ));
+    $_SESSION['login_attempts'] = $attempts;
+    return count($attempts) >= 5;
+}
+
+function clear_login_attempts(): void
+{
+    unset($_SESSION['login_attempts']);
 }

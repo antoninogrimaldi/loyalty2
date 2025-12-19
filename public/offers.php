@@ -7,6 +7,7 @@ $user = current_user();
 $message = $error = null;
 
 $productRows = $mysqli->query('SELECT name, ean, sku, brand, category, price, image_url, description FROM products WHERE active = 1 ORDER BY name ASC')->fetch_all(MYSQLI_ASSOC);
+$productCount = count($productRows);
 if (!$productRows) {
     $productRows = [
         ['name' => 'Caffè in grani', 'ean' => '8000000000011', 'sku' => 'CAFF-GRANI-001', 'brand' => 'Torrefazione Demo', 'category' => 'Dispensa', 'price' => 7.90, 'image_url' => 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=60', 'description' => 'Miscela 100% arabica per moka e espresso.'],
@@ -14,6 +15,7 @@ if (!$productRows) {
         ['name' => 'Detersivo eco', 'ean' => '8000000000035', 'sku' => 'DETR-ECO-003', 'brand' => 'Eco Home', 'category' => 'Cura casa', 'price' => 5.50, 'image_url' => 'https://images.unsplash.com/photo-1582719478248-54e9f2af4b03?auto=format&fit=crop&w=400&q=60', 'description' => 'Detersivo ecologico concentrato per bucato.'],
         ['name' => 'Prodotto personalizzato', 'ean' => '0000000000000', 'sku' => 'CUSTOM-000', 'brand' => 'Catalogo cliente', 'category' => 'Custom', 'price' => 0, 'image_url' => 'https://dummyimage.com/400x260/e0e0e0/555&text=Prodotto', 'description' => 'Segnaposto per prodotti non sincronizzati']
     ];
+    $productCount = count($productRows);
 }
 $productMap = [];
 foreach ($productRows as $row) {
@@ -80,7 +82,7 @@ if (is_post()) {
 
 include __DIR__ . '/../includes/header.php';
 ?>
-<section class="card">
+<section class="card card-form">
     <div class="card-header">
         <div>
             <p class="eyebrow">Match 1:1 prodotto</p>
@@ -115,9 +117,14 @@ include __DIR__ . '/../includes/header.php';
     </form>
     <div class="top-actions">
         <h3 style="margin: 0;">Catalogo sincronizzato</h3>
-        <input type="search" class="filter-input" placeholder="Filtra prodotti per nome, SKU, brand o EAN" data-product-filter>
+        <div class="form-control" style="margin:0;">
+            <label class="small muted">Filtro rapido
+                <input type="search" class="filter-input" placeholder="Filtra prodotti per nome, SKU, brand o EAN" data-product-filter aria-label="Filtro prodotti">
+            </label>
+        </div>
     </div>
-    <div class="product-gallery">
+    <p class="muted small" data-product-count>Prodotti attivi: <?= e($productCount ?: count($productRows)) ?> · Ottimizzato per cataloghi da 1.000+ SKU.</p>
+    <div class="product-gallery" data-product-gallery>
         <?php foreach ($productRows as $product): ?>
             <article class="product-card" data-product-card data-searchable="<?= e(strtolower($product['name'] . ' ' . ($product['brand'] ?? '') . ' ' . $product['sku'] . ' ' . $product['ean'])) ?>">
                 <?php if (!empty($product['image_url'])): ?>
@@ -139,6 +146,7 @@ include __DIR__ . '/../includes/header.php';
             </article>
         <?php endforeach; ?>
     </div>
+    <p class="muted" data-empty-catalog style="display:none;">Nessun prodotto corrispondente. Allarga il filtro o sincronizza il catalogo.</p>
     <h3>Selezioni attuali</h3>
     <?php if (!$currentOffers): ?>
         <p>Nessuna scelta salvata.</p>

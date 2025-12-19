@@ -10,8 +10,8 @@ return [
     ],
     'app' => [
         'name' => 'Loyalty Hub',
-        // Se l'app vive in una sottocartella (es. http://localhost/loyalty2), indica il percorso base
-        // altrimenti imposta a '' per la root (es. http://localhost/).
-        'base_url' => '/loyalty2'
+        // Se l'app vive direttamente in htdocs, lascia stringa vuota (http://localhost/).
+        // Se è in una sottocartella (es. http://localhost/loyalty2), imposta quel percorso.
+        'base_url' => ''
     ]
 ];

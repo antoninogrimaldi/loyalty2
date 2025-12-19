@@ -17,37 +17,47 @@ $stats = [
 if (is_post()) {
     if (!verify_csrf($_POST['csrf'] ?? '')) { die('Token CSRF non valido'); }
 
-    if (isset($_POST['add_points'])) {
+    if (isset($_POST['add_points']) && !$error) {
         $userId = (int) $_POST['user_id'];
         $points = (int) $_POST['points'];
-        $stmt = $mysqli->prepare('UPDATE loyalty_balances SET points = points + ? WHERE user_id = ?');
-        $stmt->bind_param('ii', $points, $userId);
-        $stmt->execute();
-        $message = 'Punti aggiornati';
+        if ($points <= 0) {
+            $error = 'Inserisci un valore di punti positivo';
+        } else {
+            $stmt = $mysqli->prepare('UPDATE loyalty_balances SET points = points + ? WHERE user_id = ?');
+            $stmt->bind_param('ii', $points, $userId);
+            $stmt->execute();
+            $message = 'Punti aggiornati';
+        }
     }
 
-    if (isset($_POST['create_coupon'])) {
-        $code = strtoupper(trim($_POST['code']));
-        $desc = trim($_POST['description']);
+    if (isset($_POST['create_coupon']) && !$error) {
+        $code = strtoupper(sanitize_field($_POST['code'] ?? '', 40));
+        $desc = sanitize_field($_POST['description'] ?? '', 255);
         $discount = (int) $_POST['discount'];
         $userId = $_POST['coupon_user'] ? (int) $_POST['coupon_user'] : null;
-        $stmt = $mysqli->prepare('INSERT INTO coupons (user_id, code, description, discount_percent, expires_at) VALUES (?, ?, ?, ?, ?)');
-        $stmt->bind_param('issis', $userId, $code, $desc, $discount, $_POST['expires_at']);
-        $stmt->execute();
-        $message = 'Coupon creato';
+        if ($code === '' || $desc === '') {
+            $error = 'Codice e descrizione sono obbligatori';
+        } elseif ($discount < 0 || $discount > 100) {
+            $error = 'Sconto non valido (0-100)';
+        } else {
+            $stmt = $mysqli->prepare('INSERT INTO coupons (user_id, code, description, discount_percent, expires_at) VALUES (?, ?, ?, ?, ?)');
+            $stmt->bind_param('issis', $userId, $code, $desc, $discount, $_POST['expires_at']);
+            $stmt->execute();
+            $message = 'Coupon creato';
+        }
     }
 
-    if (isset($_POST['create_product'])) {
-        $name = trim($_POST['name']);
-        $sku = trim($_POST['sku']);
-        $ean = trim($_POST['ean']);
-        $brand = trim($_POST['brand'] ?? '');
-        $category = trim($_POST['category'] ?? '');
+    if (isset($_POST['create_product']) && !$error) {
+        $name = sanitize_field($_POST['name'] ?? '', 120);
+        $sku = sanitize_field($_POST['sku'] ?? '', 60);
+        $ean = sanitize_field($_POST['ean'] ?? '', 32);
+        $brand = sanitize_field($_POST['brand'] ?? '', 120);
+        $category = sanitize_field($_POST['category'] ?? '', 120);
         $price = (float) $_POST['price'];
-        $imageUrl = trim($_POST['image_url'] ?? '');
-        $description = trim($_POST['description'] ?? '');
-        $odooId = trim($_POST['odoo_product_id'] ?? '');
-        $shopifyId = trim($_POST['shopify_product_id'] ?? '');
+        $imageUrl = sanitize_field($_POST['image_url'] ?? '', 255);
+        $description = sanitize_field($_POST['description'] ?? '', 255);
+        $odooId = sanitize_field($_POST['odoo_product_id'] ?? '', 64);
+        $shopifyId = sanitize_field($_POST['shopify_product_id'] ?? '', 64);
         $active = isset($_POST['active']) ? 1 : 0;
 
         if ($name === '' || $sku === '' || $ean === '') {
@@ -71,7 +81,7 @@ if (is_post()) {
         }
     }
 
-    if (isset($_POST['toggle_product'])) {
+    if (isset($_POST['toggle_product']) && !$error) {
         $productId = (int) $_POST['product_id'];
         $newStatus = (int) $_POST['new_status'];
         $stmt = $mysqli->prepare('UPDATE products SET active = ? WHERE id = ?');
@@ -80,7 +90,7 @@ if (is_post()) {
         $message = 'Stato prodotto aggiornato';
     }
 
-    if (isset($_POST['update_level'])) {
+    if (isset($_POST['update_level']) && !$error) {
         $userId = (int) $_POST['user_id'];
         $level = trim($_POST['level']);
         $points = max(0, (int) $_POST['points']);
@@ -90,9 +100,9 @@ if (is_post()) {
         $message = 'Livello e punti aggiornati';
     }
 
-    if (isset($_POST['add_order'])) {
+    if (isset($_POST['add_order']) && !$error) {
         $userId = (int) $_POST['user_id'];
-        $orderNumber = trim($_POST['order_number']);
+        $orderNumber = sanitize_field($_POST['order_number'] ?? '', 40);
         $total = (float) $_POST['total'];
         if ($orderNumber === '') {
             $error = 'Inserisci un numero ordine';

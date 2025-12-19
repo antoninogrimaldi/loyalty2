@@ -4,6 +4,28 @@ function e(string $value): string
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+function sanitize_field(string $value, int $maxLength): string
+{
+    $value = trim(preg_replace('/\s+/', ' ', $value));
+    return mb_substr($value, 0, $maxLength);
+}
+
+function validate_password_strength(string $password): ?string
+{
+    if (strlen($password) < 10) {
+        return 'La password deve avere almeno 10 caratteri.';
+    }
+    $hasUpper = preg_match('/[A-Z]/', $password);
+    $hasLower = preg_match('/[a-z]/', $password);
+    $hasDigit = preg_match('/[0-9]/', $password);
+    $hasSymbol = preg_match('/[^A-Za-z0-9]/', $password);
+
+    if (!$hasUpper || !$hasLower || !$hasDigit || !$hasSymbol) {
+        return 'Usa maiuscole, minuscole, numeri e simboli per una password robusta.';
+    }
+    return null;
+}
+
 function app_config(): array
 {
     static $config = null;
@@ -41,6 +63,20 @@ function csrf_token(): string
 function verify_csrf(string $token): bool
 {
     return hash_equals($_SESSION['csrf_token'] ?? '', $token);
+}
+
+function normalize_phone(string $phone): ?string
+{
+    $clean = preg_replace('/[^\d+]/', '', $phone);
+    if ($clean === '' || strlen($clean) < 6 || strlen($clean) > 18) {
+        return null;
+    }
+    return $clean;
+}
+
+function is_valid_postal_code(string $postal): bool
+{
+    return preg_match('/^[0-9]{5}$/', $postal) === 1;
 }
 
 function is_valid_italian_tax_code(string $taxCode): bool
