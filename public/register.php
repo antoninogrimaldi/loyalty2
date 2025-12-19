@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/shopify.php';
 
 $error = null;
 $success = null;
@@ -98,6 +99,15 @@ if (is_post()) {
 
             $mysqli->commit();
             $success = 'Registrazione completata. Ora puoi accedere.';
+
+            $shopifyUser = [
+                'email' => $data['email'],
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'phone' => $phoneNormalized,
+                'tax_code' => $data['tax_code']
+            ];
+            shopify_upsert_customer($shopifyUser, $consents);
         } catch (mysqli_sql_exception $e) {
             $mysqli->rollback();
             $error = 'Registrazione non riuscita. Riprovare più tardi';

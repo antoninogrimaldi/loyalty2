@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/shopify.php';
 require_login();
 $user = current_user();
 $success = $error = null;
@@ -19,23 +20,38 @@ $consents = $consentStmt->get_result()->fetch_assoc();
 if (is_post()) {
     if (!verify_csrf($_POST['csrf'] ?? '')) { die('Token CSRF non valido'); }
     $fields = [
-        'first_name' => trim($_POST['first_name'] ?? ''),
-        'last_name' => trim($_POST['last_name'] ?? ''),
-        'phone' => trim($_POST['phone'] ?? ''),
-        'postal_code' => trim($_POST['postal_code'] ?? ''),
-        'address' => trim($_POST['address'] ?? '')
+        'first_name' => sanitize_field($_POST['first_name'] ?? '', 80),
+        'last_name' => sanitize_field($_POST['last_name'] ?? '', 80),
+        'phone' => sanitize_field($_POST['phone'] ?? '', 32),
+        'postal_code' => sanitize_field($_POST['postal_code'] ?? '', 12),
+        'address' => sanitize_field($_POST['address'] ?? '', 180)
     ];
     foreach ($fields as $value) {
         if ($value === '') { $error = 'Completa tutti i campi'; break; }
     }
+    $normalizedPhone = normalize_phone($fields['phone']);
+    if (!$error && !$normalizedPhone) {
+        $error = 'Telefono non valido';
+    }
+    if (!$error && !is_valid_postal_code($fields['postal_code'])) {
+        $error = 'CAP non valido';
+    }
     if (!$error) {
         $update = $mysqli->prepare('UPDATE users SET first_name=?, last_name=?, phone=?, postal_code=?, address=? WHERE id=?');
-        $update->bind_param('sssssi', $fields['first_name'], $fields['last_name'], $fields['phone'], $fields['postal_code'], $fields['address'], $user['id']);
+        $update->bind_param('sssssi', $fields['first_name'], $fields['last_name'], $normalizedPhone, $fields['postal_code'], $fields['address'], $user['id']);
         $update->execute();
         $success = 'Profilo aggiornato';
         $profile = array_merge($profile, $fields);
         $_SESSION['user']['first_name'] = $fields['first_name'];
         $_SESSION['user']['last_name'] = $fields['last_name'];
+        $syncPayload = [
+            'email' => $profile['email'],
+            'first_name' => $fields['first_name'],
+            'last_name' => $fields['last_name'],
+            'phone' => $normalizedPhone,
+            'tax_code' => $profile['tax_code'] ?? ''
+        ];
+        shopify_upsert_customer($syncPayload, $consents ?: []);
     }
 }
 

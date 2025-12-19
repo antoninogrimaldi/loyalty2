@@ -34,3 +34,9 @@ Piattaforma loyalty minimale scritta in PHP/JS/HTML/CSS con MySQL, pensata per X
 - `includes/` helper di sicurezza, sessione e DB.
 - `assets/` stile e script UI responsive.
 - `schema.sql` definizione database con dati demo, EAN/sku e consensi preconfigurati.
+
+## Shopify (fase 2)
+1. Imposta in `config/config.php` il blocco `shopify` con `domain`, `access_token`, `api_version` e un `sync_secret` robusto.
+2. Creazione/aggiornamento clienti: la registrazione e l’aggiornamento del profilo eseguono un upsert su Shopify, aggiungono il tag `fidelity` e sincronizzano `accepts_marketing` con il consenso marketing della piattaforma.
+3. Import prodotti: chiama l’endpoint protetto `public/api/shopify_products.php?token=SYNC_SECRET` (da cron o webhook) per importare/aggiornare tutte le varianti del catalogo Shopify nella tabella `products` (mappando barcode→EAN, SKU, vendor, product_type, descrizione, immagine e prezzo). 
+4. I dati vengono normalizzati e gli update sono idempotenti grazie alle chiavi univoche SKU/EAN.
