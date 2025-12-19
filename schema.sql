@@ -41,6 +41,7 @@ CREATE TABLE coupons (
     discount_percent INT DEFAULT 0,
     expires_at DATE,
     is_redeemed TINYINT(1) DEFAULT 0,
+    shopify_price_rule_id BIGINT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 

@@ -125,7 +125,7 @@ function shopify_delete_price_rule(int $priceRuleId): void
     shopify_request('DELETE', "price_rules/{$priceRuleId}.json");
 }
 
-function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, ?string $existingCode = null, int $discountPercent = 10): array
+function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, ?string $existingCode = null, ?int $existingRuleId = null, int $discountPercent = 10): array
 {
     if (!shopify_enabled()) {
         return ['ok' => false, 'error' => 'Shopify non configurato'];
@@ -140,13 +140,7 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
     };
 
     $code = $existingCode ?: $generateCode();
-    $priceRuleId = shopify_lookup_discount_code($code);
-    if ($priceRuleId) {
-        $update = shopify_request('PUT', "price_rules/{$priceRuleId}.json", $priceRulePayload);
-        if ($update['ok']) {
-            return ['ok' => true, 'code' => $code, 'updated' => true];
-        }
-    }
+    $priceRuleId = $existingRuleId ?: shopify_lookup_discount_code($code);
 
     $priceRulePayload = [
         'price_rule' => [
@@ -165,6 +159,17 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
         ]
     ];
 
+    // Se esiste una rule, prova ad aggiornarla
+    if ($priceRuleId) {
+        $update = shopify_request('PUT', "price_rules/{$priceRuleId}.json", $priceRulePayload);
+        if ($update['ok']) {
+            return ['ok' => true, 'code' => $code, 'price_rule_id' => $priceRuleId, 'updated' => true];
+        }
+        // se l'update fallisce, elimina la rule corrotta e ricrea
+        shopify_delete_price_rule($priceRuleId);
+        $priceRuleId = null;
+    }
+
     $createRule = shopify_request('POST', 'price_rules.json', $priceRulePayload);
     if (!$createRule['ok'] || empty($createRule['data']['price_rule']['id'])) {
         $err = $createRule['data']['errors'] ?? null;
@@ -172,12 +177,13 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
     }
     $priceRuleId = (int) $createRule['data']['price_rule']['id'];
 
+    $priceRuleId = (int) $createRule['data']['price_rule']['id'];
     $attempts = 0;
     do {
         $attempts++;
         $createCode = shopify_request('POST', "price_rules/{$priceRuleId}/discount_codes.json", ['discount_code' => ['code' => $code]]);
         if ($createCode['ok']) {
-            return ['ok' => true, 'code' => $code, 'updated' => false];
+            return ['ok' => true, 'code' => $code, 'price_rule_id' => $priceRuleId, 'updated' => false];
         }
         // codice già esistente: proviamo a riusare la rule esistente e cancellare quella creata
         $existingRule = shopify_lookup_discount_code($code);
@@ -185,7 +191,7 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
             shopify_delete_price_rule($priceRuleId);
             $updateExisting = shopify_request('PUT', "price_rules/{$existingRule}.json", $priceRulePayload);
             if ($updateExisting['ok']) {
-                return ['ok' => true, 'code' => $code, 'updated' => true];
+                return ['ok' => true, 'code' => $code, 'price_rule_id' => $existingRule, 'updated' => true];
             }
         }
         // rigenera nuovo codice e ritenta
