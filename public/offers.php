@@ -27,7 +27,7 @@ if ($types) { $countStmt->bind_param($types, ...$params); }
 $countStmt->execute();
 $totalProducts = (int) ($countStmt->get_result()->fetch_assoc()['total'] ?? 0);
 
-$sql = "SELECT name, ean, sku, brand, category, price, image_url, description FROM products $where ORDER BY name ASC LIMIT ? OFFSET ?";
+$sql = "SELECT name, ean, sku, brand, category, price, image_url, description, shopify_product_id FROM products $where ORDER BY name ASC LIMIT ? OFFSET ?";
 $stmt = $mysqli->prepare($sql);
 if ($types) {
     $bindParams = array_merge($params, [$perPage, $offset]);
@@ -56,6 +56,8 @@ $currentOffersStmt = $mysqli->prepare('SELECT po.product_name, po.product_ean, p
 $currentOffersStmt->bind_param('i', $user['id']);
 $currentOffersStmt->execute();
 $currentOffers = $currentOffersStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$marketingConsent = (int) ($mysqli->query("SELECT marketing FROM user_consents WHERE user_id = {$user['id']}")->fetch_assoc()['marketing'] ?? 0);
+$couponCode = $mysqli->query("SELECT code FROM coupons WHERE user_id = {$user['id']} AND code LIKE 'OP-%' LIMIT 1")->fetch_assoc()['code'] ?? null;
 $missingOffers = 0;
 foreach ($currentOffers as $offer) {
     if (!isset($productMap[$offer['product_ean']])) {
@@ -77,7 +79,7 @@ if (is_post()) {
         $ean = trim($_POST[$field] ?? '');
         if ($ean !== '') {
             if (!isset($productMap[$ean])) {
-                $fetch = $mysqli->prepare('SELECT name, ean, sku, brand, category, price, image_url, description FROM products WHERE ean = ? LIMIT 1');
+                $fetch = $mysqli->prepare('SELECT name, ean, sku, brand, category, price, image_url, description, shopify_product_id FROM products WHERE ean = ? LIMIT 1');
                 $fetch->bind_param('s', $ean);
                 $fetch->execute();
                 $row = $fetch->get_result()->fetch_assoc();
@@ -110,13 +112,65 @@ if (is_post()) {
                 $ins->execute();
             }
 
-            $log = $mysqli->prepare('INSERT INTO offer_change_log (user_id) VALUES (?)');
-            $log->bind_param('i', $user['id']);
-            $log->execute();
+            if (!$canOverrideMissing) {
+                $log = $mysqli->prepare('INSERT INTO offer_change_log (user_id) VALUES (?)');
+                $log->bind_param('i', $user['id']);
+                $log->execute();
+            }
 
             $mysqli->commit();
-            header('Location: ' . base_url('public/offers.php'));
-            exit;
+            $shopifySyncError = null;
+            if (shopify_enabled()) {
+                require_once __DIR__ . '/../includes/shopify.php';
+                $customerId = shopify_find_customer_id($user['email']);
+                if (!$customerId) {
+                    shopify_upsert_customer([
+                        'email' => $user['email'],
+                        'first_name' => $user['first_name'],
+                        'last_name' => $user['last_name'],
+                        'phone' => $user['phone'] ?? null,
+                        'tax_code' => $user['tax_code'] ?? null
+                    ], ['marketing' => $marketingConsent]);
+                    $customerId = shopify_find_customer_id($user['email']);
+                }
+                $shopifyProductIds = array_values(array_filter(array_map(fn($p) => $p['shopify_product_id'] ?? '', $selected)));
+                if ($customerId && $shopifyProductIds) {
+                    $sync = shopify_sync_offer_discount($customerId, $shopifyProductIds, $couponCode);
+                    if (!empty($sync['ok'])) {
+                        $codeToStore = $sync['code'] ?? $couponCode;
+                        if ($codeToStore) {
+                            $existingCoupon = $mysqli->prepare('SELECT id FROM coupons WHERE user_id = ? AND code = ?');
+                            $existingCoupon->bind_param('is', $user['id'], $codeToStore);
+                            $existingCoupon->execute();
+                            $exists = $existingCoupon->get_result()->fetch_assoc();
+                            if ($exists) {
+                                $update = $mysqli->prepare('UPDATE coupons SET description = ?, discount_percent = ? WHERE id = ?');
+                                $desc = 'Offerta personalizzata Shopify';
+                                $discount = 10;
+                                $update->bind_param('sii', $desc, $discount, $exists['id']);
+                                $update->execute();
+                            } else {
+                                $insert = $mysqli->prepare('INSERT INTO coupons (user_id, code, description, discount_percent, expires_at, is_redeemed) VALUES (?, ?, ?, ?, NULL, 0)');
+                                $desc = 'Offerta personalizzata Shopify';
+                                $discount = 10;
+                                $insert->bind_param('issis', $user['id'], $codeToStore, $desc, $discount);
+                                $insert->execute();
+                            }
+                        }
+                    } else {
+                        $shopifySyncError = $sync['error'] ?? 'Sync Shopify fallita';
+                    }
+                } else {
+                    $shopifySyncError = 'Cliente o prodotti non disponibili su Shopify';
+                }
+            }
+
+            if (!$shopifySyncError) {
+                header('Location: ' . base_url('public/offers.php'));
+                exit;
+            } else {
+                $message = 'Preferenze salvate, ma lo sconto Shopify non è stato aggiornato: ' . $shopifySyncError;
+            }
         } catch (mysqli_sql_exception $e) {
             $mysqli->rollback();
             $error = 'Errore nel salvataggio delle preferenze';

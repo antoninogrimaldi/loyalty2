@@ -111,6 +111,65 @@ function shopify_upsert_customer(array $user, array $consents): array
     return $response;
 }
 
+function shopify_lookup_discount_code(string $code): ?int
+{
+    $resp = shopify_request('GET', 'discount_codes/lookup.json', [], ['code' => $code]);
+    if (!$resp['ok'] || empty($resp['data']['discount_code']['price_rule_id'])) {
+        return null;
+    }
+    return (int) $resp['data']['discount_code']['price_rule_id'];
+}
+
+function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, ?string $existingCode = null, int $discountPercent = 10): array
+{
+    if (!shopify_enabled()) {
+        return ['ok' => false, 'error' => 'Shopify non configurato'];
+    }
+    $productIds = array_values(array_filter($productShopifyIds, fn($id) => !empty($id)));
+    if (count($productIds) === 0) {
+        return ['ok' => false, 'error' => 'Nessun prodotto Shopify da scontare'];
+    }
+
+    $code = $existingCode ?: 'OP-' . strtoupper(bin2hex(random_bytes(3)));
+    $priceRuleId = $existingCode ? shopify_lookup_discount_code($code) : null;
+
+    $priceRulePayload = [
+        'price_rule' => [
+            'title' => $code,
+            'target_type' => 'line_item',
+            'target_selection' => 'entitled',
+            'allocation_method' => 'across',
+            'value_type' => 'percentage',
+            'value' => -1 * $discountPercent,
+            'customer_selection' => 'prerequisite',
+            'prerequisite_customer_ids' => [$customerId],
+            'entitled_product_ids' => $productIds,
+            'usage_limit' => null,
+            'once_per_customer' => false,
+            'starts_at' => gmdate('c')
+        ]
+    ];
+
+    if ($priceRuleId) {
+        $update = shopify_request('PUT', "price_rules/{$priceRuleId}.json", $priceRulePayload);
+        if (!$update['ok']) {
+            return ['ok' => false, 'error' => 'Aggiornamento rule fallito'];
+        }
+    } else {
+        $createRule = shopify_request('POST', 'price_rules.json', $priceRulePayload);
+        if (!$createRule['ok'] || empty($createRule['data']['price_rule']['id'])) {
+            return ['ok' => false, 'error' => 'Creazione rule fallita'];
+        }
+        $priceRuleId = (int) $createRule['data']['price_rule']['id'];
+        $createCode = shopify_request('POST', "price_rules/{$priceRuleId}/discount_codes.json", ['discount_code' => ['code' => $code]]);
+        if (!$createCode['ok']) {
+            return ['ok' => false, 'error' => 'Creazione codice fallita'];
+        }
+    }
+
+    return ['ok' => true, 'code' => $code];
+}
+
 function shopify_fetch_products_page(?string $pageInfo = null): array
 {
     $query = ['limit' => 250, 'fields' => 'id,title,body_html,product_type,vendor,variants,image'];
