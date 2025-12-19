@@ -111,7 +111,12 @@ function shopify_upsert_customer(array $user, array $consents): array
     return $response;
 }
 
-// Crea o aggiorna uno sconto automatico (senza codice) per le offerte personalizzate
+function shopify_delete_price_rule(int $priceRuleId): void
+{
+    shopify_request('DELETE', "price_rules/{$priceRuleId}.json");
+}
+
+// Crea o aggiorna uno sconto automatico (senza codice) per le offerte personalizzate, con fallback su price rule + codice
 function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, ?string $existingTitle = null, ?int $existingAutomaticId = null, int $discountPercent = 10): array
 {
     if (!shopify_enabled()) {
