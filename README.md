@@ -40,3 +40,4 @@ Piattaforma loyalty minimale scritta in PHP/JS/HTML/CSS con MySQL, pensata per X
 2. Creazione/aggiornamento clienti: la registrazione e l’aggiornamento del profilo eseguono un upsert su Shopify, aggiungono il tag `fidelity` e sincronizzano `accepts_marketing` con il consenso marketing della piattaforma.
 3. Import prodotti: chiama l’endpoint protetto `public/api/shopify_products.php?token=SYNC_SECRET` (da cron o webhook) per importare/aggiornare tutte le varianti del catalogo Shopify nella tabella `products` (mappando barcode→EAN, SKU, vendor, product_type, descrizione, immagine e prezzo). 
 4. I dati vengono normalizzati e gli update sono idempotenti grazie alle chiavi univoche SKU/EAN.
+5. Per sincronizzazione automatica oraria, pianifica `scripts/shopify_sync.php` con cron (esempio: `0 * * * * /usr/bin/php /percorso/htdocs/loyalty2/scripts/shopify_sync.php`); il job usa un lock file e salta se è già stato eseguito nell’ultima ora.
