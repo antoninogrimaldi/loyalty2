@@ -154,7 +154,7 @@ if (is_post()) {
                                 $insert = $mysqli->prepare('INSERT INTO coupons (user_id, code, description, discount_percent, expires_at, is_redeemed) VALUES (?, ?, ?, ?, NULL, 0)');
                                 $desc = 'Offerta personalizzata Shopify';
                                 $discount = 10;
-                                $insert->bind_param('issis', $user['id'], $codeToStore, $desc, $discount);
+                                $insert->bind_param('issi', $user['id'], $codeToStore, $desc, $discount);
                                 $insert->execute();
                             }
                         }
