@@ -183,53 +183,11 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
             shopify_log('Automatic discount created', ['customer_id' => $customerId, 'title' => $title, 'id' => $create['data']['automatic_discount']['id']]);
             return ['ok' => true, 'code' => $title, 'price_rule_id' => (int)$create['data']['automatic_discount']['id'], 'updated' => false, 'mode' => 'automatic'];
         }
-        shopify_log('Automatic discount creation failed', ['customer_id' => $customerId, 'response' => $create]);
-        $title = $generateTitle();
-        $payload['automatic_discount']['title'] = $title;
+        shopify_log('Automatic discount creation failed', ['customer_id' => $customerId, 'response' => $create, 'attempt' => $attempts, 'title' => $title]);
+        // mantieni stesso titolo per evitare duplicati
     }
 
-    // fallback a price rule + codice per massima compatibilità
-    $rulePayload = [
-        'price_rule' => [
-            'title' => $title,
-            'target_type' => 'line_item',
-            'target_selection' => 'entitled',
-            'allocation_method' => 'across',
-            'value_type' => 'percentage',
-            'value' => -1 * $discountPercent,
-            'customer_selection' => 'prerequisite',
-            'prerequisite_customer_ids' => [$customerId],
-            'entitled_product_ids' => $productIds,
-            'usage_limit' => null,
-            'once_per_customer' => false,
-            'starts_at' => gmdate('c')
-        ]
-    ];
-
-    $createRule = shopify_request('POST', 'price_rules.json', $rulePayload);
-    if (!$createRule['ok'] || empty($createRule['data']['price_rule']['id'])) {
-        shopify_log('Price rule creation failed', ['customer_id' => $customerId, 'response' => $createRule]);
-        return ['ok' => false, 'error' => 'Creazione sconto fallita (automatico e fallback)'];
-    }
-    $ruleId = (int)$createRule['data']['price_rule']['id'];
-
-    $codeAttempts = 0;
-    $code = $title;
-    while ($codeAttempts < 3) {
-        $codeAttempts++;
-        $createCode = shopify_request('POST', "price_rules/{$ruleId}/discount_codes.json", ['discount_code' => ['code' => $code]]);
-        if ($createCode['ok']) {
-            shopify_log('Price rule discount code created', ['customer_id' => $customerId, 'rule_id' => $ruleId, 'code' => $code]);
-            return ['ok' => true, 'code' => $code, 'price_rule_id' => $ruleId, 'updated' => false, 'mode' => 'code'];
-        }
-        shopify_log('Price rule code creation failed, retrying', ['customer_id' => $customerId, 'rule_id' => $ruleId, 'response' => $createCode]);
-        $code = $generateTitle();
-        // aggiorna titolo rule per coerenza con il nuovo codice
-        shopify_request('PUT', "price_rules/{$ruleId}.json", ['price_rule' => ['title' => $code]]);
-    }
-
-    shopify_delete_price_rule($ruleId);
-    return ['ok' => false, 'error' => 'Creazione sconto fallita anche in fallback'];
+    return ['ok' => false, 'error' => 'Creazione sconto automatico fallita'];
 }
 
 function shopify_fetch_products_page(?string $pageInfo = null): array

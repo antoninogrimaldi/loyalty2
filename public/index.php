@@ -25,6 +25,20 @@ $couponStmt = $mysqli->prepare('SELECT code, description, discount_percent, expi
 $couponStmt->bind_param('i', $user['id']);
 $couponStmt->execute();
 $coupons = $couponStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$shopifyLink = null;
+$shopifyCfg = app_config()['shopify'] ?? [];
+if (!empty($shopifyCfg['domain'])) {
+    $shopBase = 'https://' . $shopifyCfg['domain'];
+    $opCoupon = null;
+    foreach ($coupons as $c) {
+        if (strpos($c['code'], 'OP-') === 0) { $opCoupon = $c; break; }
+    }
+    if ($opCoupon) {
+        $shopifyLink = $shopBase . '/discount/' . urlencode($opCoupon['code']);
+    } else {
+        $shopifyLink = $shopBase;
+    }
+}
 
 $offersStmt = $mysqli->prepare('SELECT po.product_name, po.product_ean, po.note, po.created_at, p.image_url FROM personalized_offers po LEFT JOIN products p ON p.ean = po.product_ean WHERE po.user_id = ? ORDER BY po.created_at DESC');
 $offersStmt->bind_param('i', $user['id']);
@@ -74,7 +88,12 @@ include __DIR__ . '/../includes/header.php';
                 <p class="eyebrow">Vantaggi</p>
                 <h3 style="margin:0;">Coupon</h3>
             </div>
-            <span class="pill subtle">Aggiornati in tempo reale</span>
+            <div class="hero-actions">
+                <span class="pill subtle">Aggiornati in tempo reale</span>
+                <?php if ($shopifyLink): ?>
+                    <a class="button ghost small" href="<?= e($shopifyLink) ?>" target="_blank" rel="noopener">Apri su Shopify</a>
+                <?php endif; ?>
+            </div>
         </div>
         <?php if (!$coupons): ?>
             <p class="muted">Nessun coupon attivo.</p>
