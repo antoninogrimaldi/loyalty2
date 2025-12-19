@@ -130,7 +130,11 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
         return ['ok' => false, 'error' => 'Nessun prodotto Shopify da scontare'];
     }
 
-    $code = $existingCode ?: 'OP-' . strtoupper(bin2hex(random_bytes(3)));
+    $generateCode = function (): string {
+        return 'OP-' . strtoupper(bin2hex(random_bytes(3)));
+    };
+
+    $code = $existingCode ?: $generateCode();
     $priceRuleId = $existingCode ? shopify_lookup_discount_code($code) : null;
 
     $priceRulePayload = [
@@ -155,19 +159,28 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
         if (!$update['ok']) {
             return ['ok' => false, 'error' => 'Aggiornamento rule fallito'];
         }
-    } else {
-        $createRule = shopify_request('POST', 'price_rules.json', $priceRulePayload);
-        if (!$createRule['ok'] || empty($createRule['data']['price_rule']['id'])) {
-            return ['ok' => false, 'error' => 'Creazione rule fallita'];
-        }
-        $priceRuleId = (int) $createRule['data']['price_rule']['id'];
-        $createCode = shopify_request('POST', "price_rules/{$priceRuleId}/discount_codes.json", ['discount_code' => ['code' => $code]]);
-        if (!$createCode['ok']) {
-            return ['ok' => false, 'error' => 'Creazione codice fallita'];
-        }
+        return ['ok' => true, 'code' => $code];
     }
 
-    return ['ok' => true, 'code' => $code];
+    $createRule = shopify_request('POST', 'price_rules.json', $priceRulePayload);
+    if (!$createRule['ok'] || empty($createRule['data']['price_rule']['id'])) {
+        $err = $createRule['data']['errors'] ?? null;
+        return ['ok' => false, 'error' => 'Creazione rule fallita', 'details' => $err];
+    }
+    $priceRuleId = (int) $createRule['data']['price_rule']['id'];
+
+    $attempts = 0;
+    do {
+        $attempts++;
+        $createCode = shopify_request('POST', "price_rules/{$priceRuleId}/discount_codes.json", ['discount_code' => ['code' => $code]]);
+        if ($createCode['ok']) {
+            return ['ok' => true, 'code' => $code];
+        }
+        // se codice già esiste, rigeneralo
+        $code = $generateCode();
+    } while ($attempts < 3);
+
+    return ['ok' => false, 'error' => 'Creazione codice fallita dopo tentativi multipli'];
 }
 
 function shopify_fetch_products_page(?string $pageInfo = null): array
