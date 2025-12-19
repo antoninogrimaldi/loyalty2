@@ -111,12 +111,17 @@ function shopify_upsert_customer(array $user, array $consents): array
     return $response;
 }
 
+function shopify_delete_automatic_discount(int $id): void
+{
+    shopify_request('DELETE', "automatic_discounts/{$id}.json");
+}
+
 function shopify_delete_price_rule(int $priceRuleId): void
 {
     shopify_request('DELETE', "price_rules/{$priceRuleId}.json");
 }
 
-// Crea o aggiorna uno sconto automatico (senza codice) per le offerte personalizzate, con fallback su price rule + codice
+// Crea o aggiorna uno sconto automatico (senza codice) per le offerte personalizzate
 function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, ?string $existingTitle = null, ?int $existingAutomaticId = null, int $discountPercent = 10): array
 {
     if (!shopify_enabled()) {
@@ -154,10 +159,12 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
         if ($update['ok']) {
             return ['ok' => true, 'code' => $title, 'price_rule_id' => $existingAutomaticId, 'updated' => true, 'mode' => 'automatic'];
         }
+        // se non riesce l'update, prova a cancellare e ricreare
+        shopify_delete_automatic_discount($existingAutomaticId);
     }
 
     $attempts = 0;
-    while ($attempts < 2) {
+    while ($attempts < 3) {
         $attempts++;
         $create = shopify_request('POST', 'automatic_discounts.json', $payload);
         if ($create['ok'] && !empty($create['data']['automatic_discount']['id'])) {
@@ -167,47 +174,7 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
         $payload['automatic_discount']['title'] = $title;
     }
 
-    // Fallback: crea/aggiorna price rule + codice
-    $rulePayload = [
-        'price_rule' => [
-            'title' => $title,
-            'target_type' => 'line_item',
-            'target_selection' => 'entitled',
-            'allocation_method' => 'across',
-            'value_type' => 'percentage',
-            'value' => -1 * $discountPercent,
-            'customer_selection' => 'prerequisite',
-            'prerequisite_customer_ids' => [$customerId],
-            'entitled_product_ids' => $productIds,
-            'usage_limit' => null,
-            'once_per_customer' => false,
-            'starts_at' => gmdate('c')
-        ]
-    ];
-
-    $ruleId = $existingAutomaticId; // reuse storage field for rule id fallback
-    if ($ruleId) {
-        $updateRule = shopify_request('PUT', "price_rules/{$ruleId}.json", $rulePayload);
-        if (!$updateRule['ok']) {
-            shopify_delete_price_rule($ruleId);
-            $ruleId = null;
-        }
-    }
-    if (!$ruleId) {
-        $createRule = shopify_request('POST', 'price_rules.json', $rulePayload);
-        if (!$createRule['ok'] || empty($createRule['data']['price_rule']['id'])) {
-            return ['ok' => false, 'error' => 'Creazione sconto fallita (automatico e fallback)'];
-        }
-        $ruleId = (int)$createRule['data']['price_rule']['id'];
-    }
-
-    $code = $title;
-    $createCode = shopify_request('POST', "price_rules/{$ruleId}/discount_codes.json", ['discount_code' => ['code' => $code]]);
-    if ($createCode['ok']) {
-        return ['ok' => true, 'code' => $code, 'price_rule_id' => $ruleId, 'updated' => false, 'mode' => 'code'];
-    }
-    shopify_delete_price_rule($ruleId);
-    return ['ok' => false, 'error' => 'Creazione sconto fallita anche in fallback'];
+    return ['ok' => false, 'error' => 'Creazione sconto automatico fallita dopo tentativi multipli'];
 }
 
 function shopify_fetch_products_page(?string $pageInfo = null): array
