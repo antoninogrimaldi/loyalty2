@@ -56,12 +56,19 @@ $currentOffersStmt = $mysqli->prepare('SELECT po.product_name, po.product_ean, p
 $currentOffersStmt->bind_param('i', $user['id']);
 $currentOffersStmt->execute();
 $currentOffers = $currentOffersStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$missingOffers = 0;
+foreach ($currentOffers as $offer) {
+    if (!isset($productMap[$offer['product_ean']])) {
+        $missingOffers++;
+    }
+}
 
 $changesStmt = $mysqli->prepare('SELECT COUNT(*) AS changes_total FROM offer_change_log WHERE user_id = ? AND YEAR(changed_at) = YEAR(CURDATE())');
 $changesStmt->bind_param('i', $user['id']);
 $changesStmt->execute();
 $changes = (int) ($changesStmt->get_result()->fetch_assoc()['changes_total'] ?? 0);
 $remainingChanges = max(0, 2 - $changes);
+$canOverrideMissing = $missingOffers > 0;
 
 if (is_post()) {
     if (!verify_csrf($_POST['csrf'] ?? '')) { die('Token CSRF non valido'); }
@@ -70,8 +77,15 @@ if (is_post()) {
         $ean = trim($_POST[$field] ?? '');
         if ($ean !== '') {
             if (!isset($productMap[$ean])) {
-                $error = 'Prodotto non valido';
-                break;
+                $fetch = $mysqli->prepare('SELECT name, ean, sku, brand, category, price, image_url, description FROM products WHERE ean = ? LIMIT 1');
+                $fetch->bind_param('s', $ean);
+                $fetch->execute();
+                $row = $fetch->get_result()->fetch_assoc();
+                if (!$row) {
+                    $error = 'Prodotto non valido';
+                    break;
+                }
+                $productMap[$ean] = $row;
             }
             $selected[$ean] = $productMap[$ean];
         }
@@ -79,7 +93,7 @@ if (is_post()) {
 
     if (!$error && (count($selected) === 0 || count($selected) > 2)) {
         $error = 'Seleziona massimo 2 prodotti';
-    } elseif (!$error && $changes >= 2) {
+    } elseif (!$error && $changes >= 2 && !$canOverrideMissing) {
         $error = 'Limite di 2 cambi all\'anno raggiunto';
     }
 
@@ -134,10 +148,16 @@ include __DIR__ . '/../includes/header.php';
                     <div>
                         <div><strong><?= e($offer['product_name']) ?></strong> <span class="pill subtle">EAN <?= e($offer['product_ean']) ?></span></div>
                         <span class="muted">Dal <?= e($offer['created_at']) ?></span>
+                        <?php if (!isset($productMap[$offer['product_ean']])): ?>
+                            <div class="pill subtle">Non più in catalogo</div>
+                        <?php endif; ?>
                     </div>
                 </li>
             <?php endforeach; ?>
         </ul>
+        <?php if ($canOverrideMissing): ?>
+            <p class="muted small">Alcune scelte non sono più disponibili: puoi sostituirle senza conteggiare il cambio.</p>
+        <?php endif; ?>
     <?php endif; ?>
     <form method="post" class="stacked">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">

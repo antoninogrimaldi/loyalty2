@@ -146,13 +146,18 @@ function shopify_sync_products(mysqli $mysqli): array
 
             if (empty($product['variants'])) { continue; }
             foreach ($product['variants'] as $variant) {
+                $variantName = $title;
+                $variantTitle = trim($variant['title'] ?? '');
+                if ($variantTitle && strtolower($variantTitle) !== 'default title') {
+                    $variantName = sanitize_field($title . ' - ' . $variantTitle, 120);
+                }
                 $ean = sanitize_field($variant['barcode'] ?? $variant['sku'] ?? '', 32);
                 $sku = sanitize_field($variant['sku'] ?? $variant['barcode'] ?? '', 60);
                 if ($ean === '' && $sku === '') { continue; }
                 $price = (float) ($variant['price'] ?? 0);
 
                 $stmt = $mysqli->prepare('INSERT INTO products (name, sku, ean, brand, category, description, image_url, price, active, odoo_product_id, shopify_product_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, NULL, ?) ON DUPLICATE KEY UPDATE name=VALUES(name), brand=VALUES(brand), category=VALUES(category), description=VALUES(description), image_url=VALUES(image_url), price=VALUES(price), active=VALUES(active), shopify_product_id=VALUES(shopify_product_id)');
-                $stmt->bind_param('sssssssds', $title, $sku, $ean, $brand, $category, $description, $imageUrl, $price, $shopifyId);
+                $stmt->bind_param('sssssssds', $variantName, $sku, $ean, $brand, $category, $description, $imageUrl, $price, $shopifyId);
                 $stmt->execute();
 
                 if ($stmt->affected_rows === 1) {
