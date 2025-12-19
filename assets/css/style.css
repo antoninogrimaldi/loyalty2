@@ -101,6 +101,7 @@ a:hover { text-decoration: underline; }
     margin-top: 0.8rem;
 }
 .grid.two { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.form-grid .form-control input[type="search"] { width: 100%; }
 
 .stat-grid {
     display: grid;
@@ -217,8 +218,10 @@ fieldset.consents {
 .offer-thumb {
     width: 48px;
     height: 48px;
+    aspect-ratio: 1 / 1;
     border-radius: 12px;
-    background-size: cover;
+    background-size: contain;
+    background-repeat: no-repeat;
     background-position: center;
     border: 1px solid var(--border);
     box-shadow: var(--shadow-soft);
@@ -268,7 +271,7 @@ fieldset.consents {
 .table thead th { font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
 .table tbody tr:hover { background: #f8fafc; }
 
-.thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-soft); }
+.thumb { width: 64px; height: 64px; aspect-ratio: 1 / 1; object-fit: contain; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-soft); }
 
 .footer { text-align: center; padding: 2rem 1.4rem 2.4rem; color: var(--muted); font-size: 0.95rem; }
 
@@ -314,10 +317,11 @@ fieldset.consents {
 .product-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 
 .product-media {
-    height: 170px;
     width: 100%;
-    background-size: cover;
+    aspect-ratio: 1 / 1;
+    background-size: contain;
     background-position: center;
+    background-repeat: no-repeat;
     border-radius: var(--radius) var(--radius) 0 0;
 }
 

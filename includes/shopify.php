@@ -85,7 +85,6 @@ function shopify_upsert_customer(array $user, array $consents): array
         'first_name' => $user['first_name'] ?? '',
         'last_name' => $user['last_name'] ?? '',
         'phone' => $user['phone'] ?? null,
-        'tags' => 'fidelity',
         'note' => !empty($user['tax_code']) ? ('CF: ' . $user['tax_code']) : null,
         'accepts_marketing' => $marketing,
         'accepts_marketing_updated_at' => gmdate('c'),
@@ -94,8 +93,18 @@ function shopify_upsert_customer(array $user, array $consents): array
 
     $customerId = shopify_find_customer_id($user['email']);
     if ($customerId) {
+        $existing = shopify_request('GET', "customers/{$customerId}.json");
+        $tags = [];
+        if ($existing['ok'] && !empty($existing['data']['customer']['tags'])) {
+            $tags = array_filter(array_map('trim', explode(',', $existing['data']['customer']['tags'])));
+        }
+        if (!in_array('fidelity', $tags, true)) {
+            $tags[] = 'fidelity';
+        }
+        $customer['tags'] = implode(', ', $tags);
         $response = shopify_request('PUT', "customers/{$customerId}.json", ['customer' => array_merge($customer, ['id' => $customerId])]);
     } else {
+        $customer['tags'] = 'fidelity';
         $response = shopify_request('POST', 'customers.json', ['customer' => $customer]);
     }
 
@@ -120,6 +129,7 @@ function shopify_sync_products(mysqli $mysqli): array
     $updated = 0;
     $pageInfo = null;
     $pages = 0;
+    $seenShopifyIds = [];
 
     do {
         $resp = shopify_fetch_products_page($pageInfo);
@@ -129,9 +139,10 @@ function shopify_sync_products(mysqli $mysqli): array
             $title = sanitize_field($product['title'] ?? 'Prodotto Shopify', 120);
             $brand = sanitize_field($product['vendor'] ?? '', 120);
             $category = sanitize_field($product['product_type'] ?? '', 120);
-            $description = sanitize_field(strip_tags($product['body_html'] ?? ''), 255);
+            $description = sanitize_field(html_entity_decode(strip_tags($product['body_html'] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 255);
             $imageUrl = sanitize_field($product['image']['src'] ?? '', 255);
             $shopifyId = (string) ($product['id'] ?? '');
+            if ($shopifyId !== '') { $seenShopifyIds[] = $shopifyId; }
 
             if (empty($product['variants'])) { continue; }
             foreach ($product['variants'] as $variant) {
@@ -154,6 +165,21 @@ function shopify_sync_products(mysqli $mysqli): array
         $pages++;
         $pageInfo = $resp['next_page_info'] ?? null;
     } while ($pageInfo && $pages < 10); // safety guard
+
+    // Elimina prodotti non più presenti su Shopify
+    $seen = array_unique($seenShopifyIds);
+    $existing = $mysqli->query("SELECT shopify_product_id FROM products WHERE shopify_product_id IS NOT NULL AND shopify_product_id != ''")->fetch_all(MYSQLI_ASSOC);
+    if ($existing) {
+        $deleteStmt = $mysqli->prepare('DELETE FROM products WHERE shopify_product_id = ?');
+        foreach ($existing as $row) {
+            $id = (string) $row['shopify_product_id'];
+            if ($id === '' || in_array($id, $seen, true)) {
+                continue;
+            }
+            $deleteStmt->bind_param('s', $id);
+            $deleteStmt->execute();
+        }
+    }
 
     return ['ok' => true, 'inserted' => $inserted, 'updated' => $updated];
 }

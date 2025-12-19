@@ -20,12 +20,12 @@ const debounce = (fn, delay = 120) => {
 };
 
 // Lightweight search filter for large catalogs
-const productFilter = document.querySelector('[data-product-filter]');
-const productCards = Array.from(document.querySelectorAll('[data-product-card]'));
-const productCount = document.querySelector('[data-product-count]');
-const emptyCatalog = document.querySelector('[data-empty-catalog]');
+document.querySelectorAll('[data-product-filter]').forEach((productFilter) => {
+    const productCards = Array.from(document.querySelectorAll(productFilter.getAttribute('data-product-filter')));
+    const productCount = document.querySelector('[data-product-count]');
+    const emptyCatalog = document.querySelector('[data-empty-catalog]');
+    if (!productCards.length) return;
 
-if (productFilter && productCards.length) {
     const total = productCards.length;
     const updateCount = (visible) => {
         if (productCount) {
@@ -48,7 +48,7 @@ if (productFilter && productCards.length) {
         applyFilter(term);
     });
     updateCount(total);
-}
+});
 
 // Sync datalist pickers to inputs for offer selection
 function attachProductPicker(inputId) {

@@ -6,8 +6,39 @@ require_login();
 $user = current_user();
 $message = $error = null;
 
-$productRows = $mysqli->query('SELECT name, ean, sku, brand, category, price, image_url, description FROM products WHERE active = 1 ORDER BY name ASC')->fetch_all(MYSQLI_ASSOC);
-$productCount = count($productRows);
+$search = sanitize_field($_GET['q'] ?? '', 120);
+$page = max(1, (int) ($_GET['page'] ?? 1));
+$perPage = 30;
+$offset = ($page - 1) * $perPage;
+
+$where = 'WHERE active = 1';
+$params = [];
+$types = '';
+if ($search !== '') {
+    $where .= ' AND (name LIKE ? OR brand LIKE ? OR sku LIKE ? OR ean LIKE ?)';
+    $like = '%' . $search . '%';
+    $params = [$like, $like, $like, $like];
+    $types = 'ssss';
+}
+
+$countSql = "SELECT COUNT(*) AS total FROM products $where";
+$countStmt = $mysqli->prepare($countSql);
+if ($types) { $countStmt->bind_param($types, ...$params); }
+$countStmt->execute();
+$totalProducts = (int) ($countStmt->get_result()->fetch_assoc()['total'] ?? 0);
+
+$sql = "SELECT name, ean, sku, brand, category, price, image_url, description FROM products $where ORDER BY name ASC LIMIT ? OFFSET ?";
+$stmt = $mysqli->prepare($sql);
+if ($types) {
+    $bindParams = array_merge($params, [$perPage, $offset]);
+    $stmt->bind_param($types . 'ii', ...$bindParams);
+} else {
+    $stmt->bind_param('ii', $perPage, $offset);
+}
+$stmt->execute();
+$productRows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$productCount = $totalProducts;
+
 if (!$productRows) {
     $productRows = [
         ['name' => 'Caffè in grani', 'ean' => '8000000000011', 'sku' => 'CAFF-GRANI-001', 'brand' => 'Torrefazione Demo', 'category' => 'Dispensa', 'price' => 7.90, 'image_url' => 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=60', 'description' => 'Miscela 100% arabica per moka e espresso.'],
@@ -15,7 +46,6 @@ if (!$productRows) {
         ['name' => 'Detersivo eco', 'ean' => '8000000000035', 'sku' => 'DETR-ECO-003', 'brand' => 'Eco Home', 'category' => 'Cura casa', 'price' => 5.50, 'image_url' => 'https://images.unsplash.com/photo-1582719478248-54e9f2af4b03?auto=format&fit=crop&w=400&q=60', 'description' => 'Detersivo ecologico concentrato per bucato.'],
         ['name' => 'Prodotto personalizzato', 'ean' => '0000000000000', 'sku' => 'CUSTOM-000', 'brand' => 'Catalogo cliente', 'category' => 'Custom', 'price' => 0, 'image_url' => 'https://dummyimage.com/400x260/e0e0e0/555&text=Prodotto', 'description' => 'Segnaposto per prodotti non sincronizzati']
     ];
-    $productCount = count($productRows);
 }
 $productMap = [];
 foreach ($productRows as $row) {
@@ -93,6 +123,22 @@ include __DIR__ . '/../includes/header.php';
     </div>
     <?php if ($message): ?><p class="success"><?= e($message) ?></p><?php endif; ?>
     <?php if ($error): ?><p class="error"><?= e($error) ?></p><?php endif; ?>
+    <h3>Selezioni attuali</h3>
+    <?php if (!$currentOffers): ?>
+        <p class="muted">Non hai offerte selezionate.</p>
+    <?php else: ?>
+        <ul>
+            <?php foreach ($currentOffers as $offer): ?>
+                <li class="offer-row">
+                    <?php if (!empty($offer['image_url'])): ?><span class="offer-thumb" style="background-image:url('<?= e($offer['image_url']) ?>');"></span><?php endif; ?>
+                    <div>
+                        <div><strong><?= e($offer['product_name']) ?></strong> <span class="pill subtle">EAN <?= e($offer['product_ean']) ?></span></div>
+                        <span class="muted">Dal <?= e($offer['created_at']) ?></span>
+                    </div>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
     <form method="post" class="stacked">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="grid">
@@ -117,11 +163,12 @@ include __DIR__ . '/../includes/header.php';
     </form>
     <div class="top-actions">
         <h3 style="margin: 0;">Catalogo sincronizzato</h3>
-        <div class="form-control" style="margin:0;">
+        <form method="get" class="form-control" style="margin:0;">
             <label class="small muted">Filtro rapido
-                <input type="search" class="filter-input" placeholder="Filtra prodotti per nome, SKU, brand o EAN" data-product-filter aria-label="Filtro prodotti">
+                <input type="search" class="filter-input" name="q" data-product-filter="[data-product-card]" value="<?= e($search) ?>" placeholder="Filtra prodotti per nome, SKU, brand o EAN" aria-label="Filtro prodotti server-side">
             </label>
-        </div>
+            <input type="hidden" name="page" value="1">
+        </form>
     </div>
     <p class="muted small" data-product-count>Prodotti attivi: <?= e($productCount ?: count($productRows)) ?> · Ottimizzato per cataloghi da 1.000+ SKU.</p>
     <div class="product-gallery" data-product-gallery>
@@ -147,21 +194,18 @@ include __DIR__ . '/../includes/header.php';
         <?php endforeach; ?>
     </div>
     <p class="muted" data-empty-catalog style="display:none;">Nessun prodotto corrispondente. Allarga il filtro o sincronizza il catalogo.</p>
-    <h3>Selezioni attuali</h3>
-    <?php if (!$currentOffers): ?>
-        <p>Nessuna scelta salvata.</p>
-    <?php else: ?>
-        <ul>
-            <?php foreach ($currentOffers as $offer): ?>
-                <li class="offer-row">
-                    <?php if (!empty($offer['image_url'])): ?><span class="offer-thumb" style="background-image:url('<?= e($offer['image_url']) ?>');"></span><?php endif; ?>
-                    <div>
-                        <div><strong><?= e($offer['product_name']) ?></strong> <span class="pill subtle">EAN <?= e($offer['product_ean']) ?></span></div>
-                        <span class="muted">Dal <?= e($offer['created_at']) ?></span>
-                    </div>
-                </li>
-            <?php endforeach; ?>
-        </ul>
+    <?php if ($productCount > $perPage): ?>
+        <div class="top-actions">
+            <div class="muted small">Pagina <?= e($page) ?> di <?= e((int) ceil($productCount / $perPage)) ?></div>
+            <div class="hero-actions">
+                <?php if ($page > 1): ?>
+                    <a class="button ghost small" href="<?= e(base_url('public/offers.php') . '?page=' . ($page - 1) . ($search ? '&q=' . urlencode($search) : '')) ?>">&larr; Precedente</a>
+                <?php endif; ?>
+                <?php if ($page < ceil($productCount / $perPage)): ?>
+                    <a class="button ghost small" href="<?= e(base_url('public/offers.php') . '?page=' . ($page + 1) . ($search ? '&q=' . urlencode($search) : '')) ?>">Successiva &rarr;</a>
+                <?php endif; ?>
+            </div>
+        </div>
     <?php endif; ?>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
