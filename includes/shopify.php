@@ -138,6 +138,7 @@ function shopify_sync_offer_discount(int $customerId, array $productShopifyIds, 
             'customer_selection' => 'prerequisite',
             'prerequisite_customer_ids' => [$customerId],
             'entitled_product_ids' => $productIds,
+            'combines_with' => ['product_discounts' => false, 'shipping_discounts' => false, 'order_discounts' => false],
             'status' => 'enabled',
             'starts_at' => gmdate('c')
         ]

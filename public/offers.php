@@ -149,13 +149,13 @@ if (is_post()) {
                             $exists = $existingCoupon->get_result()->fetch_assoc();
                             if ($exists) {
                                 $update = $mysqli->prepare('UPDATE coupons SET description = ?, discount_percent = ?, shopify_price_rule_id = ? WHERE id = ?');
-                                $desc = 'Offerta personalizzata Shopify';
+                                $desc = 'Sconto automatico personalizzato Shopify';
                                 $discount = 10;
                                 $update->bind_param('siii', $desc, $discount, $ruleToStore, $exists['id']);
                                 $update->execute();
                             } else {
                                 $insert = $mysqli->prepare('INSERT INTO coupons (user_id, code, description, discount_percent, expires_at, is_redeemed, shopify_price_rule_id) VALUES (?, ?, ?, ?, NULL, 0, ?)');
-                                $desc = 'Offerta personalizzata Shopify';
+                                $desc = 'Sconto automatico personalizzato Shopify';
                                 $discount = 10;
                                 $insert->bind_param('issii', $user['id'], $codeToStore, $desc, $discount, $ruleToStore);
                                 $insert->execute();
