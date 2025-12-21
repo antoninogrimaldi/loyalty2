@@ -6,7 +6,7 @@ require_once __DIR__ . '/../app/helpers/points.php';
 require_once __DIR__ . '/../app/db/db.php';
 
 $pdo = get_db();
-$users = $pdo->query('SELECT id, shopify_customer_id, odoo_partner_id FROM customer_profiles')->fetchAll();
+$users = $pdo->query('SELECT user_id AS id, shopify_customer_id, odoo_partner_id FROM customer_profiles')->fetchAll();
 foreach ($users as $user) {
     if ($user['shopify_customer_id']) {
         $orders = shopify_fetch_orders_by_customer($user['shopify_customer_id']);
