@@ -25,8 +25,8 @@ function require_login($adminOnly = false)
 function authenticate($identifier, $password)
 {
     $pdo = get_db();
-    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = :id OR username = :id');
-    $stmt->execute([':id' => $identifier]);
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = :email OR username = :username');
+    $stmt->execute([':email' => $identifier, ':username' => $identifier]);
     $user = $stmt->fetch();
     if (!$user) {
         return false;
