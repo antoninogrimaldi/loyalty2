@@ -15,7 +15,7 @@
           <h5>Punti disponibili</h5>
           <div class="display-6"><?php echo $balance; ?></div>
         </div>
-        <a class="btn btn-outline-primary" href="/?route=customer_points">Dettaglio movimenti</a>
+        <a class="btn btn-outline-primary" href="<?php echo route_url('customer_points'); ?>">Dettaglio movimenti</a>
       </div>
     </div>
     <div class="card mb-3">
@@ -37,7 +37,7 @@
             <p class="text-muted">Il codice sconto sarà generato alla prossima sincronizzazione.</p>
           <?php endif; ?>
         <?php else: ?>
-          <p>Nessuna offerta ancora. <a href="/?route=customer_offers">Seleziona i tuoi prodotti</a>.</p>
+          <p>Nessuna offerta ancora. <a href="<?php echo route_url('customer_offers'); ?>">Seleziona i tuoi prodotti</a>.</p>
         <?php endif; ?>
       </div>
     </div>

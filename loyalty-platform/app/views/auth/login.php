@@ -20,7 +20,7 @@
         <button class="btn btn-outline-secondary" disabled>Login con Google (Fase 2)</button>
         <button class="btn btn-outline-secondary" disabled>Login con Apple (Fase 2)</button>
       </div>
-      <p class="mt-3">Non hai un account? <a href="/?route=register">Registrati</a></p>
+      <p class="mt-3">Non hai un account? <a href="<?php echo route_url('register'); ?>">Registrati</a></p>
     </form>
   </div>
 </div>

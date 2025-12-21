@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../db/db.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/url.php';
 
 function current_user()
 {
@@ -12,7 +13,7 @@ function require_login($adminOnly = false)
 {
     $user = current_user();
     if (!$user) {
-        header('Location: /loyalty-platform/public/?route=login');
+        header('Location: ' . route_url('login'));
         exit;
     }
     if ($adminOnly && empty($user['is_admin'])) {

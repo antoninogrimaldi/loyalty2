@@ -11,12 +11,12 @@ if (!isset($title)) { $title = 'Loyalty'; }
 <body class="bg-light">
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4">
   <div class="container-fluid">
-    <a class="navbar-brand" href="/?route=home">Loyalty</a>
+    <a class="navbar-brand" href="<?php echo route_url('home'); ?>">Loyalty</a>
     <div class="d-flex">
       <?php if (!empty($_SESSION['user'])): ?>
-        <a class="btn btn-outline-secondary" href="/?route=logout">Logout</a>
+        <a class="btn btn-outline-secondary" href="<?php echo route_url('logout'); ?>">Logout</a>
       <?php else: ?>
-        <a class="btn btn-primary" href="/?route=login">Login</a>
+        <a class="btn btn-primary" href="<?php echo route_url('login'); ?>">Login</a>
       <?php endif; ?>
     </div>
   </div>

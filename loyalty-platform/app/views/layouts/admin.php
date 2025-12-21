@@ -10,10 +10,10 @@
 <body>
 <nav class="navbar navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="/?route=admin_dashboard">Admin</a>
+    <a class="navbar-brand" href="<?php echo route_url('admin_dashboard'); ?>">Admin</a>
     <div class="text-white">
-      <a class="text-white me-3" href="/?route=home">Area cliente</a>
-      <a class="btn btn-sm btn-outline-light" href="/?route=logout">Logout</a>
+      <a class="text-white me-3" href="<?php echo route_url('home'); ?>">Area cliente</a>
+      <a class="btn btn-sm btn-outline-light" href="<?php echo route_url('logout'); ?>">Logout</a>
     </div>
   </div>
 </nav>
@@ -21,14 +21,14 @@
   <div class="row">
     <div class="col-3 col-lg-2 bg-light vh-100 p-3">
       <div class="list-group">
-        <a class="list-group-item" href="/?route=admin_dashboard">Dashboard</a>
-        <a class="list-group-item" href="/?route=admin_users">Utenti</a>
-        <a class="list-group-item" href="/?route=admin_points">Punti</a>
-        <a class="list-group-item" href="/?route=admin_rewards">Premi</a>
-        <a class="list-group-item" href="/?route=admin_coupons">Coupon</a>
-        <a class="list-group-item" href="/?route=admin_offers">Offerte</a>
-        <a class="list-group-item" href="/?route=admin_settings">Impostazioni</a>
-        <a class="list-group-item" href="/?route=admin_sync">Sync</a>
+        <a class="list-group-item" href="<?php echo route_url('admin_dashboard'); ?>">Dashboard</a>
+        <a class="list-group-item" href="<?php echo route_url('admin_users'); ?>">Utenti</a>
+        <a class="list-group-item" href="<?php echo route_url('admin_points'); ?>">Punti</a>
+        <a class="list-group-item" href="<?php echo route_url('admin_rewards'); ?>">Premi</a>
+        <a class="list-group-item" href="<?php echo route_url('admin_coupons'); ?>">Coupon</a>
+        <a class="list-group-item" href="<?php echo route_url('admin_offers'); ?>">Offerte</a>
+        <a class="list-group-item" href="<?php echo route_url('admin_settings'); ?>">Impostazioni</a>
+        <a class="list-group-item" href="<?php echo route_url('admin_sync'); ?>">Sync</a>
       </div>
     </div>
     <div class="col-9 col-lg-10 p-4">

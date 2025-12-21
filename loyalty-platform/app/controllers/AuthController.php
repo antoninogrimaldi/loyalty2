@@ -18,7 +18,7 @@ function handle_login()
             $password = $_POST['password'] ?? '';
             $user = authenticate($identifier, $password);
             if ($user) {
-                header('Location: /loyalty-platform/public/?route=home');
+                header('Location: ' . route_url('home'));
                 exit;
             }
             $errors[] = 'Credenziali errate';
@@ -76,7 +76,7 @@ function handle_register()
                     $token = bin2hex(random_bytes(16));
                     $stmt3 = $pdo->prepare('INSERT INTO email_verification_tokens (user_id, token_hash, expires_at) VALUES (:u, :t, DATE_ADD(NOW(), INTERVAL 1 DAY))');
                     $stmt3->execute([':u' => $userId, ':t' => password_hash($token, PASSWORD_DEFAULT)]);
-                    $link = APP_URL . '/?route=verify&token=' . $token . '&uid=' . $userId;
+                    $link = route_url('verify', ['token' => $token, 'uid' => $userId]);
                     send_mail($email, 'Verifica la tua email', '<p>Clicca per verificare: <a href="'.$link.'">'.$link.'</a></p>');
                     $pdo->commit();
                     $success = true;
@@ -110,6 +110,6 @@ function handle_verify()
 function handle_logout()
 {
     logout();
-    header('Location: /loyalty-platform/public/?route=login');
+    header('Location: ' . route_url('login'));
     exit;
 }

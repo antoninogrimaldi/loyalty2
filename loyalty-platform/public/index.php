@@ -4,6 +4,7 @@ session_start([
     'cookie_samesite' => 'Lax'
 ]);
 require_once __DIR__ . '/../app/config/config.php';
+require_once __DIR__ . '/../app/helpers/url.php';
 require_once __DIR__ . '/../app/controllers/AuthController.php';
 require_once __DIR__ . '/../app/controllers/CustomerController.php';
 require_once __DIR__ . '/../app/controllers/AdminController.php';
