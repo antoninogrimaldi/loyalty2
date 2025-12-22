@@ -5,7 +5,7 @@ require_once __DIR__ . '/../app/helpers/logger.php';
 require_once __DIR__ . '/../app/db/db.php';
 
 $pdo = get_db();
-$offers = $pdo->query('SELECT po.*, u.email, u.id as user_id, cp.first_name, cp.last_name, cp.phone, cp.shopify_customer_id, cp.odoo_partner_id
+$offers = $pdo->query('SELECT po.*, u.email, u.phone, u.id as user_id, cp.first_name, cp.last_name, cp.shopify_customer_id, cp.odoo_partner_id
     FROM personalized_offers po
     JOIN users u ON u.id = po.user_id
     JOIN customer_profiles cp ON cp.user_id = po.user_id
