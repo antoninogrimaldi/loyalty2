@@ -16,8 +16,9 @@ function shopify_request($method, $endpoint, $data = null)
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     }
     $response = curl_exec($ch);
-    if (curl_errno($ch)) {
-        app_log('Shopify error: ' . curl_error($ch));
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if (curl_errno($ch) || $httpCode >= 300) {
+        app_log('Shopify error (' . $httpCode . '): ' . curl_error($ch) . ' body:' . substr($response, 0, 500));
         return null;
     }
     return json_decode($response, true);
@@ -69,6 +70,10 @@ function shopify_fetch_products($since = null)
 
 function shopify_create_or_update_discount_code_for_offer(array $user, array $offer, string $code, array $variantIds)
 {
+    if (empty($offer['shopify_customer_id'])) {
+        app_log('Shopify discount skipped: missing shopify_customer_id for user '.$user['id']);
+        return null;
+    }
     $priceRule = shopify_request('POST', 'price_rules.json', [
         'price_rule' => [
             'title' => $code,
@@ -86,10 +91,16 @@ function shopify_create_or_update_discount_code_for_offer(array $user, array $of
         ]
     ]);
     $priceRuleId = $priceRule['price_rule']['id'] ?? null;
-    if ($priceRuleId) {
-        shopify_request('POST', "price_rules/{$priceRuleId}/discount_codes.json", [
-            'discount_code' => ['code' => $code]
-        ]);
+    if (!$priceRuleId) {
+        app_log('Shopify discount creation failed for user '.$user['id'].' code '.$code);
+        return null;
+    }
+    $discountResp = shopify_request('POST', "price_rules/{$priceRuleId}/discount_codes.json", [
+        'discount_code' => ['code' => $code]
+    ]);
+    if (!isset($discountResp['discount_code']['code'])) {
+        app_log('Shopify discount code creation failed for user '.$user['id'].' price_rule '.$priceRuleId);
+        return null;
     }
     return $code;
 }
