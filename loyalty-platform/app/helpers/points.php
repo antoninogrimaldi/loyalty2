@@ -13,7 +13,8 @@ function get_setting($key, $default = null)
 function adjust_points($userId, $points, $type, $referenceType = null, $referenceId = null, $note = null)
 {
     $pdo = get_db();
-    $stmt = $pdo->prepare('INSERT INTO points_ledger (user_id, type, points, reference_type, reference_id, note) VALUES (:u, :t, :p, :rt, :ri, :n)');
+    $stmt = $pdo->prepare('INSERT INTO points_ledger (user_id, type, points, reference_type, reference_id, note) VALUES (:u, :t, :p, :rt, :ri, :n)
+        ON DUPLICATE KEY UPDATE points = VALUES(points), note = VALUES(note)');
     $stmt->execute([
         ':u' => $userId,
         ':t' => $type,

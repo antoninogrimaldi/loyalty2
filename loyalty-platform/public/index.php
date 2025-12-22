@@ -1,7 +1,8 @@
 <?php
 session_start([
     'cookie_httponly' => true,
-    'cookie_samesite' => 'Lax'
+    'cookie_samesite' => 'Lax',
+    'cookie_secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
 ]);
 require_once __DIR__ . '/../app/config/config.php';
 require_once __DIR__ . '/../app/helpers/url.php';

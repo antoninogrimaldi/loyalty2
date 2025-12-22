@@ -47,6 +47,17 @@ function handle_register()
             if (!require_fields($_POST, $required)) {
                 $errors[] = 'Compila tutti i campi obbligatori';
             }
+            // vincoli unicità amichevoli prima di creare record
+            $existsUser = $pdo->prepare('SELECT id FROM users WHERE email=:e OR username=:u OR phone=:p LIMIT 1');
+            $existsUser->execute([':e'=>$email, ':u'=>$username, ':p'=>$phone]);
+            if ($existsUser->fetch()) {
+                $errors[] = 'Email, username o telefono già in uso';
+            }
+            $existsTax = $pdo->prepare('SELECT user_id FROM customer_profiles WHERE tax_code=:t LIMIT 1');
+            $existsTax->execute([':t'=>$tax]);
+            if ($existsTax->fetch()) {
+                $errors[] = 'Codice Fiscale già registrato';
+            }
             if (!$errors) {
                 $pdo->beginTransaction();
                 try {

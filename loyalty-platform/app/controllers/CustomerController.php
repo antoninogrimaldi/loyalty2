@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../helpers/auth.php';
 require_once __DIR__ . '/../helpers/points.php';
 require_once __DIR__ . '/../helpers/qr.php';
+require_once __DIR__ . '/../helpers/validation.php';
 require_once __DIR__ . '/../db/db.php';
 
 function customer_home()
