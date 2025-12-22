@@ -39,6 +39,11 @@ function shopify_upsert_customer(array $profile)
     return $resp['customer']['id'] ?? null;
 }
 
+function shopify_generate_offer_code(int $userId, string $email): string
+{
+    return 'BEST-' . $userId . '-' . substr(md5($email . microtime(true)), 0, 6);
+}
+
 function shopify_fetch_products($since = null)
 {
     $endpoint = 'products.json?status=active&limit=100';
@@ -62,20 +67,20 @@ function shopify_fetch_products($since = null)
     return $products;
 }
 
-function shopify_create_or_update_discount_code_for_offer(array $user, array $offer)
+function shopify_create_or_update_discount_code_for_offer(array $user, array $offer, string $code, array $variantIds)
 {
-    $code = 'BEST-' . $user['id'] . '-' . substr(md5($user['email'] . time()), 0, 6);
-    // Fase 1: creiamo un price rule generico sconto percentuale su carrello
     $priceRule = shopify_request('POST', 'price_rules.json', [
         'price_rule' => [
             'title' => $code,
             'target_type' => 'line_item',
-            'target_selection' => 'all',
+            'target_selection' => 'entitled',
+            'entitled_variant_ids' => $variantIds,
             'allocation_method' => 'across',
             'value_type' => 'percentage',
             'value' => '-' . ($offer['discount_pct'] ?? 10),
-            'customer_selection' => 'all',
-            'once_per_customer' => false,
+            'customer_selection' => 'prerequisite',
+            'prerequisite_customer_ids' => [$offer['shopify_customer_id']],
+            'once_per_customer' => true,
             'usage_limit' => null,
             'starts_at' => date('c')
         ]
