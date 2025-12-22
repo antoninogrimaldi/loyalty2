@@ -32,12 +32,11 @@ foreach ($offers as $offer) {
     }
 
     // resolve product variants by EAN
-$variantStmt = $pdo->prepare('SELECT shopify_variant_id FROM product_cache WHERE status="active" AND ean IN (?, ?)');
-$variantStmt->execute([$offer['product1_ean'], $offer['product2_ean']]);
-$variantIds = array_column($variantStmt->fetchAll(), 'shopify_variant_id');
+    $variantStmt = $pdo->prepare('SELECT shopify_variant_id FROM product_cache WHERE status="active" AND ean IN (?, ?)');
+    $variantStmt->execute([$offer['product1_ean'], $offer['product2_ean']]);
+    $variantIds = array_column($variantStmt->fetchAll(), 'shopify_variant_id');
     if (count($variantIds) < 1) {
-        app_log('Sync offer: varianti non trovate per offer '.$offer['id']);
-        continue;
+        app_log('Sync offer: varianti non trovate, si procede con sconto carrello intero per offer '.$offer['id']);
     }
 
     // crea codice sconto Shopify valido solo per cliente e varianti selezionate

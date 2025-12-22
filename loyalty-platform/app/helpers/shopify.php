@@ -74,21 +74,25 @@ function shopify_create_or_update_discount_code_for_offer(array $user, array $of
         app_log('Shopify discount skipped: missing shopify_customer_id for user '.$user['id']);
         return null;
     }
+    $targetSelection = $variantIds ? 'entitled' : 'all';
+    $priceRuleBody = [
+        'title' => $code,
+        'target_type' => 'line_item',
+        'target_selection' => $targetSelection,
+        'allocation_method' => 'across',
+        'value_type' => 'percentage',
+        'value' => '-' . ($offer['discount_pct'] ?? 10),
+        'customer_selection' => 'prerequisite',
+        'prerequisite_customer_ids' => [$offer['shopify_customer_id']],
+        'once_per_customer' => true,
+        'usage_limit' => null,
+        'starts_at' => date('c')
+    ];
+    if ($variantIds) {
+        $priceRuleBody['entitled_variant_ids'] = $variantIds;
+    }
     $priceRule = shopify_request('POST', 'price_rules.json', [
-        'price_rule' => [
-            'title' => $code,
-            'target_type' => 'line_item',
-            'target_selection' => 'entitled',
-            'entitled_variant_ids' => $variantIds,
-            'allocation_method' => 'across',
-            'value_type' => 'percentage',
-            'value' => '-' . ($offer['discount_pct'] ?? 10),
-            'customer_selection' => 'prerequisite',
-            'prerequisite_customer_ids' => [$offer['shopify_customer_id']],
-            'once_per_customer' => true,
-            'usage_limit' => null,
-            'starts_at' => date('c')
-        ]
+        'price_rule' => $priceRuleBody
     ]);
     $priceRuleId = $priceRule['price_rule']['id'] ?? null;
     if (!$priceRuleId) {
